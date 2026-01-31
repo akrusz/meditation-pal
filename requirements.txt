@@ -1,0 +1,25 @@
+# Audio
+pyaudio>=0.2.14
+sounddevice>=0.4.6
+webrtcvad>=2.0.10
+
+# STT - Whisper
+openai-whisper>=20231117
+# For Apple Silicon optimization, install mlx-whisper separately:
+# pip install mlx-whisper
+
+# LLM clients
+anthropic>=0.40.0
+openai>=1.50.0
+httpx>=0.27.0
+
+# TTS (Piper - optional, macOS say is default)
+# pip install piper-tts
+
+# Utilities
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+numpy>=1.24.0
+
+# For better async support
+asyncio-compat>=0.1.0

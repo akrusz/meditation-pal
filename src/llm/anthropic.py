@@ -1,0 +1,92 @@
+"""Anthropic API provider for Claude."""
+
+import os
+
+from .base import BaseLLMProvider, Message, CompletionResult
+
+
+class AnthropicProvider(BaseLLMProvider):
+    """LLM provider using the Anthropic API directly.
+
+    Useful for:
+    - Using Haiku 4.5 for cost efficiency ($1/$5 per MTok)
+    - When CLIProxyAPI is not available
+    - Production deployments
+    """
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model: str = "claude-sonnet-4-5-20250929",
+        max_tokens: int = 300,
+    ):
+        """Initialize Anthropic provider.
+
+        Args:
+            api_key: Anthropic API key (defaults to ANTHROPIC_API_KEY env var)
+            model: Model to use
+            max_tokens: Maximum tokens in response
+        """
+        super().__init__(model=model, max_tokens=max_tokens)
+        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+
+        if not self.api_key:
+            raise ValueError(
+                "Anthropic API key required. Set ANTHROPIC_API_KEY environment variable "
+                "or pass api_key parameter."
+            )
+
+        self._client = None
+
+    def _get_client(self):
+        """Get or create Anthropic client."""
+        if self._client is None:
+            try:
+                import anthropic
+            except ImportError:
+                raise ImportError(
+                    "anthropic package not installed. Run: pip install anthropic"
+                )
+
+            self._client = anthropic.AsyncAnthropic(api_key=self.api_key)
+
+        return self._client
+
+    async def complete(
+        self,
+        messages: list[Message],
+        system: str | None = None,
+        max_tokens: int | None = None,
+    ) -> CompletionResult:
+        """Generate a completion using Anthropic API."""
+        client = self._get_client()
+
+        # Convert messages to Anthropic format
+        anthropic_messages = []
+        for msg in messages:
+            if msg.role != "system":  # System is passed separately
+                anthropic_messages.append({
+                    "role": msg.role,
+                    "content": msg.content,
+                })
+
+        # Make API call
+        response = await client.messages.create(
+            model=self.model,
+            max_tokens=max_tokens or self.max_tokens,
+            system=system or "",
+            messages=anthropic_messages,
+        )
+
+        # Extract response
+        text = response.content[0].text if response.content else ""
+
+        tokens_used = None
+        if response.usage:
+            tokens_used = response.usage.input_tokens + response.usage.output_tokens
+
+        return CompletionResult(
+            text=text,
+            finish_reason=response.stop_reason,
+            tokens_used=tokens_used,
+        )
