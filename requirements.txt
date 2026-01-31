@@ -26,6 +26,3 @@ scipy>=1.10.0
 pyyaml>=6.0.1
 python-dotenv>=1.0.0
 numpy>=1.24.0
-
-# For better async support
-asyncio-compat>=0.1.0
