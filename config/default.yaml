@@ -12,9 +12,20 @@ stt:
   device: auto  # auto, cpu, cuda, mps
 
 tts:
-  engine: macos  # macos, piper, elevenlabs
+  engine: macos  # macos, piper, parakeet, elevenlabs
   voice: Samantha
   rate: 180  # words per minute
+
+  # Parakeet options (if engine: parakeet)
+  # model_name: nvidia/parakeet-tts-1.1b
+  # backend: transformers  # transformers, nemo, onnx
+
+  # ElevenLabs options (if engine: elevenlabs)
+  # api_key: ${ELEVENLABS_API_KEY}
+  # voice_id: 21m00Tcm4TlvDq8ikWAM  # Rachel - calm, warm
+  # model_id: eleven_monolingual_v1
+  # stability: 0.75
+  # similarity_boost: 0.75
 
 llm:
   provider: claude_proxy  # claude_proxy, anthropic, openai, ollama

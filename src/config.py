@@ -31,6 +31,18 @@ class TTSConfig:
     voice: str = "Samantha"
     rate: int = 180
 
+    # Parakeet options
+    model_name: str = "nvidia/parakeet-tts-1.1b"
+    backend: str = "transformers"  # transformers, nemo, onnx
+    device: str = "auto"
+
+    # ElevenLabs options
+    api_key: str | None = None
+    voice_id: str | None = None
+    model_id: str = "eleven_monolingual_v1"
+    stability: float = 0.75
+    similarity_boost: float = 0.75
+
 
 @dataclass
 class LLMConfig:
@@ -138,10 +150,14 @@ def load_config(path: str | Path | None = None) -> Config:
         if "session" in data:
             config.session = _update_dataclass(SessionConfig(), data["session"])
 
-    # Handle environment variable substitution for API key
+    # Handle environment variable substitution for API keys
     if config.llm.api_key and config.llm.api_key.startswith("${"):
         env_var = config.llm.api_key[2:-1]
         config.llm.api_key = os.environ.get(env_var)
+
+    if config.tts.api_key and config.tts.api_key.startswith("${"):
+        env_var = config.tts.api_key[2:-1]
+        config.tts.api_key = os.environ.get(env_var)
 
     return config
 

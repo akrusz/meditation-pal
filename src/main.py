@@ -13,8 +13,7 @@ from .config import load_config, Config
 from .audio.input import AudioInput
 from .audio.vad import VoiceActivityDetector, VADConfig, SpeechState
 from .stt.whisper import WhisperSTT
-from .tts.macos import MacOSTTS
-from .tts.piper import create_tts
+from .tts import create_tts
 from .llm.ollama import create_llm_provider
 from .llm.base import Message
 from .facilitation.pacing import PacingController, PacingConfig as PacingCtrlConfig, TurnDecision
@@ -73,6 +72,16 @@ class MeditationFacilitator:
             engine=self.config.tts.engine,
             voice=self.config.tts.voice,
             rate=self.config.tts.rate,
+            # Parakeet options
+            model_name=self.config.tts.model_name,
+            backend=self.config.tts.backend,
+            device=self.config.tts.device,
+            # ElevenLabs options
+            api_key=self.config.tts.api_key,
+            voice_id=self.config.tts.voice_id,
+            model_id=self.config.tts.model_id,
+            stability=self.config.tts.stability,
+            similarity_boost=self.config.tts.similarity_boost,
         )
 
     def _init_llm(self) -> None:
@@ -262,6 +271,14 @@ class MeditationFacilitator:
                 engine=self.config.tts.engine,
                 voice=self.config.tts.voice,
                 rate=self.config.tts.rate,
+                model_name=self.config.tts.model_name,
+                backend=self.config.tts.backend,
+                device=self.config.tts.device,
+                api_key=self.config.tts.api_key,
+                voice_id=self.config.tts.voice_id,
+                model_id=self.config.tts.model_id,
+                stability=self.config.tts.stability,
+                similarity_boost=self.config.tts.similarity_boost,
             )
             await tts.speak(closer)
         except Exception:
