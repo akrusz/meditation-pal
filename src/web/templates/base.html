@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Meditation Pal{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">Meditation Pal</a>
+        <div class="nav-links">
+            <a href="/">New Session</a>
+            <a href="/history">History</a>
+        </div>
+    </nav>
+
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

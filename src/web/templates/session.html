@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Session - Meditation Pal{% endblock %}
+
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="session-container">
+    <div class="session-ambient">
+        <div class="orb orb-breathing" id="orb"></div>
+    </div>
+
+    <div class="session-timer" id="timer">0:00</div>
+
+    <div class="conversation" id="conversation">
+        <!-- Messages appear here -->
+    </div>
+
+    <div class="typing-indicator" id="typing-indicator">
+        <span></span><span></span><span></span>
+    </div>
+
+    <div class="input-area">
+        <div class="input-row">
+            <textarea
+                id="user-input"
+                placeholder="Describe what you're experiencing..."
+                rows="1"
+                autofocus
+            ></textarea>
+            <button id="send-btn" class="btn btn-send" title="Send">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13"></path>
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                </svg>
+            </button>
+            <button id="voice-btn" class="btn btn-voice" title="Toggle voice input">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="input-controls">
+            <label class="toggle-label" title="Read responses aloud">
+                <input type="checkbox" id="tts-toggle" checked>
+                <span class="toggle-text">Voice</span>
+            </label>
+            <button id="end-btn" class="btn btn-end">End Session</button>
+        </div>
+    </div>
+</div>
+
+<div class="session-ended-overlay" id="session-ended" style="display: none;">
+    <div class="session-ended-content">
+        <div class="orb orb-idle"></div>
+        <p id="closer-text"></p>
+        <div class="session-ended-actions">
+            <a href="/" class="btn btn-primary">New Session</a>
+            <a href="/history" class="btn btn-secondary">View History</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/session.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Meditation Pal{% endblock %}
+
+{% block content %}
+<div class="setup-container">
+    <div class="setup-header">
+        <div class="orb orb-idle"></div>
+        <h1>Begin Your Practice</h1>
+        <p class="setup-subtitle">Set an intention, choose how you'd like to be guided, then sit.</p>
+    </div>
+
+    <form id="setup-form" class="setup-form">
+        <div class="form-group">
+            <label for="intention">Intention <span class="optional">(optional)</span></label>
+            <textarea
+                id="intention"
+                name="intention"
+                rows="2"
+                placeholder="e.g. Explore pleasant sensations... Practice jhana... Just be present... Let go and drift..."
+            ></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Facilitation Style</label>
+            <div class="style-cards">
+                <label class="style-card selected" data-style="jhourney">
+                    <input type="radio" name="style" value="jhourney" checked>
+                    <div class="style-card-inner">
+                        <span class="style-name">Jhourney</span>
+                        <span class="style-desc">Gentle arc toward pleasant sensations and absorption</span>
+                    </div>
+                </label>
+                <label class="style-card" data-style="adaptive">
+                    <input type="radio" name="style" value="adaptive">
+                    <div class="style-card-inner">
+                        <span class="style-name">Adaptive</span>
+                        <span class="style-desc">Flow with whatever arises, orienting toward your intention</span>
+                    </div>
+                </label>
+                <label class="style-card" data-style="non_directive">
+                    <input type="radio" name="style" value="non_directive">
+                    <div class="style-card-inner">
+                        <span class="style-name">Non-directive</span>
+                        <span class="style-desc">Pure presence and reflection, no guidance</span>
+                    </div>
+                </label>
+                <label class="style-card" data-style="somatic">
+                    <input type="radio" name="style" value="somatic">
+                    <div class="style-card-inner">
+                        <span class="style-name">Somatic</span>
+                        <span class="style-desc">Body-focused exploration of sensation</span>
+                    </div>
+                </label>
+                <label class="style-card" data-style="open">
+                    <input type="radio" name="style" value="open">
+                    <div class="style-card-inner">
+                        <span class="style-name">Open</span>
+                        <span class="style-desc">Minimal facilitation, mostly holding space</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group form-group-half">
+                <label for="directiveness">
+                    Guidance Level
+                    <span class="range-value" id="directiveness-value">3</span>
+                </label>
+                <input
+                    type="range"
+                    id="directiveness"
+                    name="directiveness"
+                    min="0"
+                    max="10"
+                    value="3"
+                >
+                <div class="range-labels">
+                    <span>Following</span>
+                    <span>Directing</span>
+                </div>
+            </div>
+
+            <div class="form-group form-group-half">
+                <label for="verbosity">Response Length</label>
+                <select id="verbosity" name="verbosity">
+                    <option value="low" selected>Brief</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">Longer</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="pleasant_emphasis" name="pleasant_emphasis" checked>
+                <span class="checkmark"></span>
+                Orient toward pleasant sensations
+            </label>
+        </div>
+
+        <details class="advanced-settings">
+            <summary>Additional instructions</summary>
+            <div class="form-group">
+                <textarea
+                    id="custom_instructions"
+                    name="custom_instructions"
+                    rows="3"
+                    placeholder="Any specific guidance for the facilitator..."
+                ></textarea>
+            </div>
+        </details>
+
+        <button type="submit" class="btn btn-primary btn-begin">
+            Begin Session
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Style card selection
+    document.querySelectorAll('.style-card').forEach(card => {
+        card.addEventListener('click', () => {
+            document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+        });
+    });
+
+    // Range display
+    const dirSlider = document.getElementById('directiveness');
+    const dirValue = document.getElementById('directiveness-value');
+    dirSlider.addEventListener('input', () => {
+        dirValue.textContent = dirSlider.value;
+    });
+
+    // Form submit
+    document.getElementById('setup-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const params = {
+            intention: document.getElementById('intention').value,
+            style: document.querySelector('input[name="style"]:checked').value,
+            directiveness: parseInt(dirSlider.value),
+            pleasant_emphasis: document.getElementById('pleasant_emphasis').checked,
+            verbosity: document.getElementById('verbosity').value,
+            custom_instructions: document.getElementById('custom_instructions').value,
+        };
+
+        sessionStorage.setItem('sessionParams', JSON.stringify(params));
+        window.location.href = '/session';
+    });
+</script>
+{% endblock %}

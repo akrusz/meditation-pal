@@ -1,6 +1,12 @@
 """Allow running as python -m src."""
 
-from .main import main
+import sys
 
 if __name__ == "__main__":
-    main()
+    if "--web" in sys.argv:
+        sys.argv.remove("--web")
+        from .web import run_web
+        run_web()
+    else:
+        from .main import main
+        main()
