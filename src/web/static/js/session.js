@@ -24,12 +24,32 @@
     let timerInterval = null;
     let sessionStart = null;
     const synth = window.speechSynthesis || null;
+    let preferredVoice = null;
+
+    // Resolve preferred TTS voice once voices are loaded
+    function resolveVoice() {
+        if (!synth) return;
+        var voices = synth.getVoices();
+        if (voices.length === 0) return;
+        preferredVoice = voices.find(function (v) {
+            return v.name.includes('Samantha') || v.name.includes('Karen') ||
+                   v.name.includes('Daniel') || v.name.includes('Google UK English Female');
+        }) || voices[0];
+    }
+    if (synth) {
+        resolveVoice();
+        synth.addEventListener('voiceschanged', resolveVoice);
+    }
 
     // Audio capture state
     let audioContext = null;
     let mediaStream = null;
     let scriptProcessor = null;
     let audioChunks = [];
+    let silenceTimer = null;
+    let speechDetected = false;
+    var SILENCE_THRESHOLD = 0.015; // RMS level below which counts as silence
+    var SILENCE_DURATION = 2000;   // ms of silence before auto-submitting
 
     // ---- Initialize ----
 
@@ -133,54 +153,93 @@
     });
 
     // ---- Voice Input (server-side Whisper via AudioContext) ----
+    //
+    // Click mic once to enter voice mode. The mic stays open and continuously
+    // listens. When you stop speaking (silence for SILENCE_DURATION ms), the
+    // captured audio is sent for transcription, then listening resumes
+    // automatically. Click mic again to leave voice mode.
 
     function toggleVoice() {
         if (voiceActive) {
-            stopVoice();
+            deactivateVoice();
         } else {
-            startVoice();
+            activateVoice();
         }
     }
 
-    function startVoice() {
+    function activateVoice() {
         navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
             mediaStream = stream;
-            audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-            var source = audioContext.createMediaStreamSource(stream);
-
-            // ScriptProcessorNode to capture raw PCM chunks
-            scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
-            audioChunks = [];
-
-            scriptProcessor.onaudioprocess = function (e) {
-                var channelData = e.inputBuffer.getChannelData(0);
-                audioChunks.push(new Float32Array(channelData));
-            };
-
-            source.connect(scriptProcessor);
-            scriptProcessor.connect(audioContext.destination);
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
             voiceActive = true;
             voiceBtn.classList.add('active');
-            inputEl.placeholder = 'Listening... click mic again to send';
+
+            beginListening();
         }).catch(function (err) {
             console.error('Microphone error:', err);
-            inputEl.placeholder = 'Microphone access denied. Type instead.';
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                inputEl.placeholder = 'Microphone access denied. Type instead.';
+            } else {
+                inputEl.placeholder = 'Microphone error. Type instead.';
+            }
         });
     }
 
-    function stopVoice() {
-        voiceActive = false;
-        voiceBtn.classList.remove('active');
-        inputEl.placeholder = 'Describe what you\'re experiencing...';
+    function beginListening() {
+        if (!voiceActive || !audioContext || !mediaStream) return;
+
+        var source = audioContext.createMediaStreamSource(mediaStream);
+        scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+        audioChunks = [];
+        speechDetected = false;
+        if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+
+        inputEl.placeholder = 'Listening... speak naturally';
+
+        scriptProcessor.onaudioprocess = function (e) {
+            var channelData = e.inputBuffer.getChannelData(0);
+            var chunk = new Float32Array(channelData);
+
+            // Compute RMS level
+            var sum = 0;
+            for (var i = 0; i < chunk.length; i++) {
+                sum += chunk[i] * chunk[i];
+            }
+            var rms = Math.sqrt(sum / chunk.length);
+
+            if (rms > SILENCE_THRESHOLD) {
+                // Barge-in: stop TTS if the user starts speaking
+                if (!speechDetected && synth && synth.speaking) {
+                    synth.cancel();
+                }
+                // Speech detected — keep capturing
+                speechDetected = true;
+                audioChunks.push(chunk);
+                if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+            } else if (speechDetected) {
+                // Below threshold after speech — include this chunk (tail end)
+                audioChunks.push(chunk);
+                // Start silence countdown if not already running
+                if (!silenceTimer) {
+                    silenceTimer = setTimeout(function () {
+                        submitUtterance();
+                    }, SILENCE_DURATION);
+                }
+            }
+            // If no speech detected yet and below threshold, discard (ambient noise)
+        };
+
+        source.connect(scriptProcessor);
+        scriptProcessor.connect(audioContext.destination);
+    }
+
+    function submitUtterance() {
+        silenceTimer = null;
 
         if (scriptProcessor) {
             scriptProcessor.disconnect();
             scriptProcessor = null;
-        }
-        if (mediaStream) {
-            mediaStream.getTracks().forEach(function (t) { t.stop(); });
-            mediaStream = null;
         }
 
         if (audioChunks.length > 0) {
@@ -199,17 +258,34 @@
 
             var sampleRate = audioContext ? audioContext.sampleRate : 16000;
 
-            inputEl.value = 'Transcribing...';
+            inputEl.placeholder = 'Transcribing...';
             socket.emit('audio_data', {
                 audio: combined.buffer,
                 sample_rate: sampleRate,
             });
+        } else {
+            // Nothing captured, just resume listening
+            beginListening();
         }
+    }
 
+    function deactivateVoice() {
+        voiceActive = false;
+        voiceBtn.classList.remove('active');
+        inputEl.placeholder = 'Describe what you\'re experiencing...';
+
+        if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+        if (scriptProcessor) { scriptProcessor.disconnect(); scriptProcessor = null; }
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(function (t) { t.stop(); });
+            mediaStream = null;
+        }
         if (audioContext) {
             audioContext.close();
             audioContext = null;
         }
+        audioChunks = [];
+        speechDetected = false;
     }
 
     socket.on('transcription', function (data) {
@@ -219,8 +295,11 @@
             autoResize();
             sendMessage();
         } else {
-            inputEl.value = '';
-            inputEl.placeholder = 'No speech detected. Try again or type instead.';
+            inputEl.placeholder = 'No speech detected. Try again.';
+        }
+        // Resume listening if still in voice mode
+        if (voiceActive) {
+            beginListening();
         }
     });
 
@@ -234,14 +313,8 @@
         utterance.rate = 0.9;
         utterance.pitch = 0.95;
 
-        // Try to find a calm-sounding voice
-        var voices = synth.getVoices();
-        var preferred = voices.find(function (v) {
-            return v.name.includes('Samantha') || v.name.includes('Karen') ||
-                   v.name.includes('Daniel') || v.name.includes('Google UK English Female');
-        });
-        if (preferred) {
-            utterance.voice = preferred;
+        if (preferredVoice) {
+            utterance.voice = preferredVoice;
         }
 
         synth.speak(utterance);
@@ -274,7 +347,7 @@
         if (!sessionActive) return;
 
         if (voiceActive) {
-            stopVoice();
+            deactivateVoice();
         }
 
         socket.emit('end_session');

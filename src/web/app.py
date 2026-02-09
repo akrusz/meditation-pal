@@ -4,6 +4,7 @@ import asyncio
 import time
 from pathlib import Path
 
+import httpx
 import numpy as np
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
@@ -293,6 +294,17 @@ def run_web(
     """Run the web application."""
     config = load_config(config_path)
     app, socketio = create_app(config)
+
+    # Check if LLM proxy is reachable when using claude_proxy provider
+    if config.llm.provider == "claude_proxy":
+        proxy_url = config.llm.proxy_url or "http://127.0.0.1:8317"
+        try:
+            resp = httpx.get(f"{proxy_url.rstrip('/')}/v1/models", timeout=3.0)
+        except (httpx.ConnectError, httpx.TimeoutException):
+            print(f"\n  *** CLIProxyAPI is not running at {proxy_url} ***")
+            print(f"  Start it with: CLIProxyAPI")
+            print(f"  Then restart this server.\n")
+            return
 
     print(f"\n{'=' * 50}")
     print("  Meditation Pal")
