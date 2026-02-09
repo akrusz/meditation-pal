@@ -7,15 +7,16 @@ Two interfaces: a **web UI** (recommended for getting started) and a **voice CLI
 ## Quick Start (Web Interface)
 
 ```bash
-pip install -r requirements.txt
-python -m src --web
+uv venv
+uv pip install -r requirements.txt
+uv run python -m src.web
 ```
 
-Open [http://localhost:5000](http://localhost:5000) in your browser. Set an intention (or don't), pick a facilitation style, and begin.
+Open [http://localhost:5555](http://localhost:5555) in your browser. Set an intention (or don't), pick a facilitation style, and begin.
 
 You type what you're experiencing. The facilitator responds. That's it.
 
-Optional: click the microphone button to use voice dictation (uses your browser's speech recognition — works in Chrome/Edge). Toggle "Voice" to have responses read aloud.
+Optional: click the microphone button to use voice dictation (uses server-side Whisper transcription — works in all browsers). Toggle "Voice" to have responses read aloud.
 
 ## Quick Start (Voice CLI)
 
@@ -183,7 +184,7 @@ stt:
 
 Sessions auto-save to the `sessions/` folder as both JSON and readable text files.
 
-**Web:** Visit [http://localhost:5000/history](http://localhost:5000/history) to browse past sessions.
+**Web:** Visit [http://localhost:5555/history](http://localhost:5555/history) to browse past sessions.
 
 **CLI:**
 ```bash

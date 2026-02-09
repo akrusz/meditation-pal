@@ -4,6 +4,7 @@ import asyncio
 import time
 from pathlib import Path
 
+import numpy as np
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 
@@ -13,6 +14,7 @@ from ..llm.base import Message
 from ..facilitation.prompts import PromptBuilder, PromptConfig, FacilitationStyle
 from ..facilitation.session import SessionManager
 from ..logging.transcript import TranscriptLogger
+from ..stt.whisper import WhisperSTT
 
 
 class WebMeditationSession:
@@ -128,6 +130,14 @@ def create_app(config: Config | None = None) -> tuple[Flask, SocketIO]:
         save_directory=config.session.save_directory,
         include_timestamps=config.session.include_timestamps,
     )
+
+    # Initialize Whisper STT and pre-load model for fast first transcription
+    app.whisper_stt = WhisperSTT(
+        model=config.stt.model,
+        language=config.stt.language,
+        device=config.stt.device,
+    )
+    app.whisper_stt._load_model()
 
     _register_routes(app)
     _register_socketio_events(socketio, app)
@@ -257,11 +267,27 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
             "session_id": session_id,
         })
 
+    @socketio.on("audio_data")
+    def handle_audio_data(data):
+        """Receive raw PCM float32 audio and transcribe with Whisper."""
+        try:
+            audio_bytes = data.get("audio")
+            sample_rate = data.get("sample_rate", 16000)
+
+            audio = np.frombuffer(audio_bytes, dtype=np.float32)
+
+            result = app.whisper_stt.transcribe(audio, sample_rate=sample_rate)
+            text = result.text.strip()
+
+            emit("transcription", {"text": text})
+        except Exception as e:
+            emit("transcription", {"text": "", "error": str(e)})
+
 
 def run_web(
     config_path: str | None = None,
     host: str = "0.0.0.0",
-    port: int = 5000,
+    port: int = 5555,
     debug: bool = False,
 ) -> None:
     """Run the web application."""

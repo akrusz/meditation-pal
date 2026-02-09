@@ -20,11 +20,16 @@
 
     // State
     let sessionActive = false;
-    let recognition = null;
     let voiceActive = false;
     let timerInterval = null;
     let sessionStart = null;
     const synth = window.speechSynthesis || null;
+
+    // Audio capture state
+    let audioContext = null;
+    let mediaStream = null;
+    let scriptProcessor = null;
+    let audioChunks = [];
 
     // ---- Initialize ----
 
@@ -127,7 +132,7 @@
         console.error('Server error:', data.message);
     });
 
-    // ---- Voice Input (Web Speech API) ----
+    // ---- Voice Input (server-side Whisper via AudioContext) ----
 
     function toggleVoice() {
         if (voiceActive) {
@@ -138,64 +143,30 @@
     }
 
     function startVoice() {
-        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            inputEl.placeholder = 'Voice not supported in this browser. Type instead.';
-            return;
-        }
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+            mediaStream = stream;
+            audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            var source = audioContext.createMediaStreamSource(stream);
 
-        recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
+            // ScriptProcessorNode to capture raw PCM chunks
+            scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+            audioChunks = [];
 
-        var finalTranscript = '';
+            scriptProcessor.onaudioprocess = function (e) {
+                var channelData = e.inputBuffer.getChannelData(0);
+                audioChunks.push(new Float32Array(channelData));
+            };
 
-        recognition.onresult = function (event) {
-            var interim = '';
-            for (var i = event.resultIndex; i < event.results.length; i++) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interim += event.results[i][0].transcript;
-                }
-            }
-            inputEl.value = finalTranscript + interim;
-            autoResize();
-        };
+            source.connect(scriptProcessor);
+            scriptProcessor.connect(audioContext.destination);
 
-        recognition.onend = function () {
-            // If voice is still active, send what we have and restart
-            if (voiceActive) {
-                if (finalTranscript.trim()) {
-                    inputEl.value = finalTranscript.trim();
-                    sendMessage();
-                    finalTranscript = '';
-                }
-                // Restart if still in voice mode
-                try {
-                    recognition.start();
-                } catch (e) {
-                    // Already started
-                }
-            }
-        };
-
-        recognition.onerror = function (event) {
-            if (event.error === 'not-allowed') {
-                inputEl.placeholder = 'Microphone access denied. Type instead.';
-                stopVoice();
-            }
-        };
-
-        try {
-            recognition.start();
             voiceActive = true;
             voiceBtn.classList.add('active');
-            inputEl.placeholder = 'Listening... speak naturally';
-        } catch (e) {
-            console.error('Speech recognition error:', e);
-        }
+            inputEl.placeholder = 'Listening... click mic again to send';
+        }).catch(function (err) {
+            console.error('Microphone error:', err);
+            inputEl.placeholder = 'Microphone access denied. Type instead.';
+        });
     }
 
     function stopVoice() {
@@ -203,21 +174,55 @@
         voiceBtn.classList.remove('active');
         inputEl.placeholder = 'Describe what you\'re experiencing...';
 
-        if (recognition) {
-            recognition.onend = null; // prevent restart
-            try {
-                recognition.stop();
-            } catch (e) {
-                // ignore
-            }
-            recognition = null;
+        if (scriptProcessor) {
+            scriptProcessor.disconnect();
+            scriptProcessor = null;
+        }
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(function (t) { t.stop(); });
+            mediaStream = null;
         }
 
-        // Send any remaining text
-        if (inputEl.value.trim()) {
-            sendMessage();
+        if (audioChunks.length > 0) {
+            // Combine all chunks into one Float32Array
+            var totalLength = 0;
+            for (var i = 0; i < audioChunks.length; i++) {
+                totalLength += audioChunks[i].length;
+            }
+            var combined = new Float32Array(totalLength);
+            var offset = 0;
+            for (var i = 0; i < audioChunks.length; i++) {
+                combined.set(audioChunks[i], offset);
+                offset += audioChunks[i].length;
+            }
+            audioChunks = [];
+
+            var sampleRate = audioContext ? audioContext.sampleRate : 16000;
+
+            inputEl.value = 'Transcribing...';
+            socket.emit('audio_data', {
+                audio: combined.buffer,
+                sample_rate: sampleRate,
+            });
+        }
+
+        if (audioContext) {
+            audioContext.close();
+            audioContext = null;
         }
     }
+
+    socket.on('transcription', function (data) {
+        var text = (data.text || '').trim();
+        if (text) {
+            inputEl.value = text;
+            autoResize();
+            sendMessage();
+        } else {
+            inputEl.value = '';
+            inputEl.placeholder = 'No speech detected. Try again or type instead.';
+        }
+    });
 
     // ---- Voice Output (Speech Synthesis) ----
 
