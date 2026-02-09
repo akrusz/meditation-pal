@@ -293,7 +293,6 @@ def run_web(
 ) -> None:
     """Run the web application."""
     config = load_config(config_path)
-    app, socketio = create_app(config)
 
     # Check if LLM proxy is reachable when using claude_proxy provider
     if config.llm.provider == "claude_proxy":
@@ -307,8 +306,11 @@ def run_web(
             return
 
     print(f"\n{'=' * 50}")
-    print("  Meditation Pal")
-    print(f"  http://localhost:{port}")
-    print(f"{'=' * 50}\n")
+    print("  Meditation Pal — starting up...")
+    print(f"{'=' * 50}")
+
+    app, socketio = create_app(config)
+
+    print(f"\n  Ready: http://localhost:{port}\n")
 
     socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)

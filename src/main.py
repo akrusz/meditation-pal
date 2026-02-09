@@ -179,7 +179,7 @@ class MeditationFacilitator:
             if vad_result.state == SpeechState.SPEECH_STARTED:
                 self.pacing.on_speech_start()
                 self._audio_buffer = []
-                print("(listening...)")
+                pass
 
             if vad_result.is_speech or vad_result.state == SpeechState.SPEAKING:
                 self._audio_buffer.append(chunk.data)
