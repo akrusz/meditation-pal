@@ -173,10 +173,17 @@ class VoiceActivityDetector:
         )
 
     def reset(self) -> None:
-        """Reset VAD state."""
+        """Reset VAD state.
+
+        Also resets the adaptive noise floor so that residual TTS audio
+        picked up by the mic doesn't permanently inflate the detection
+        threshold across multiple exchanges.
+        """
         self._state = SpeechState.SILENCE
         self._speech_start_time = None
         self._last_speech_time = 0
+        self._noise_floor = 0.01
+        self._noise_samples = 0
 
 
 class WebRTCVAD:

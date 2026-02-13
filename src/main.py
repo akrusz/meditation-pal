@@ -11,7 +11,7 @@ import numpy as np
 
 from .config import load_config, Config
 from .audio.input import AudioInput
-from .audio.vad import VoiceActivityDetector, VADConfig, SpeechState
+from .audio.vad import VoiceActivityDetector, VADConfig, VADResult, SpeechState
 from .stt.whisper import WhisperSTT
 from .tts import create_tts
 from .llm.ollama import create_llm_provider
@@ -154,6 +154,9 @@ class MeditationFacilitator:
         opener = self.prompts.get_session_opener()
         print(f"\nFacilitator: {opener}")
         await self.tts.speak(opener)
+        self.audio_input.clear_buffer()
+        self.vad.reset()
+        self._audio_buffer = []
         self.session.add_assistant_message(opener)
         self.pacing.on_response_end()
 
@@ -164,6 +167,11 @@ class MeditationFacilitator:
 
     async def _main_loop(self) -> None:
         """Main processing loop."""
+        # Rolling pre-buffer: keeps recent chunks so speech onset isn't lost
+        pre_buffer = []
+        PRE_BUFFER_SIZE = 20  # ~600ms at 30ms chunks
+        prev_vad_state = SpeechState.SILENCE
+
         while self._running and not self._interrupted:
             # Get audio chunk
             chunk = self.audio_input.get_chunk_blocking(timeout=0.1)
@@ -178,13 +186,24 @@ class MeditationFacilitator:
             # Process through VAD
             vad_result = self.vad.process(chunk.data)
 
-            if vad_result.state == SpeechState.SPEECH_STARTED:
+            # Only seed the audio buffer on the *transition* into
+            # SPEECH_STARTED — not on every chunk while in that state.
+            # The old code ran this on every chunk, wiping the buffer
+            # each time and losing ~500ms of speech onset.
+            if (vad_result.state == SpeechState.SPEECH_STARTED
+                    and prev_vad_state != SpeechState.SPEECH_STARTED):
                 self.pacing.on_speech_start()
-                self._audio_buffer = []
-                pass
+                self._audio_buffer = list(pre_buffer)
+                pre_buffer = []
 
-            if vad_result.is_speech or vad_result.state == SpeechState.SPEAKING:
+            # Accumulate audio during any speech-related state
+            if vad_result.state in (SpeechState.SPEECH_STARTED, SpeechState.SPEAKING):
                 self._audio_buffer.append(chunk.data)
+            elif self._state_is_idle(vad_result):
+                # Maintain rolling pre-buffer during silence
+                pre_buffer.append(chunk.data)
+                if len(pre_buffer) > PRE_BUFFER_SIZE:
+                    pre_buffer.pop(0)
 
             if vad_result.state == SpeechState.SPEECH_ENDED:
                 self.pacing.on_speech_end()
@@ -213,9 +232,18 @@ class MeditationFacilitator:
                             ack = self.prompts.get_silence_acknowledgment()
                             print(f"\nFacilitator: {ack}")
                             await self.tts.speak(ack)
+                            self.audio_input.clear_buffer()
+                            self.vad.reset()
+                            self._audio_buffer = []
                             self.session.add_assistant_message(ack)
 
+            prev_vad_state = vad_result.state
             await asyncio.sleep(0.01)
+
+    @staticmethod
+    def _state_is_idle(vad_result: VADResult) -> bool:
+        """Check if VAD is in an idle/silence state (safe to buffer)."""
+        return vad_result.state in (SpeechState.SILENCE, SpeechState.SPEECH_ENDED)
 
     async def _generate_response(self) -> None:
         """Generate and speak a facilitator response."""
@@ -240,6 +268,10 @@ class MeditationFacilitator:
             print(f"\nFacilitator: {response}")
             self.session.add_assistant_message(response)
             await self.tts.speak(response)
+            # Clear mic buffer and reset VAD so we don't process TTS audio as speech
+            self.audio_input.clear_buffer()
+            self.vad.reset()
+            self._audio_buffer = []
 
         self.pacing.on_response_end()
 
@@ -248,6 +280,9 @@ class MeditationFacilitator:
         check_in = self.prompts.get_check_in_prompt()
         print(f"\nFacilitator: {check_in}")
         await self.tts.speak(check_in)
+        self.audio_input.clear_buffer()
+        self.vad.reset()
+        self._audio_buffer = []
         self.session.add_assistant_message(check_in)
         self.pacing.on_response_end()
 

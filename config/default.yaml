@@ -13,7 +13,7 @@ stt:
 
 tts:
   engine: macos  # macos, piper, parakeet, elevenlabs
-  voice: Samantha
+  voice: "Zoe (Premium)"
   rate: 180  # words per minute
 
   # Parakeet options (if engine: parakeet)
