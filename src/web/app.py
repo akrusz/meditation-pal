@@ -1,6 +1,8 @@
 """Flask web application for the meditation facilitator."""
 
 import asyncio
+import os
+import signal
 import time
 from pathlib import Path
 
@@ -297,8 +299,20 @@ def run_web(
     # Check if LLM proxy is reachable when using claude_proxy provider
     if config.llm.provider == "claude_proxy":
         proxy_url = config.llm.proxy_url or "http://127.0.0.1:8317"
+        headers = {}
+        if config.llm.api_key:
+            headers["Authorization"] = f"Bearer {config.llm.api_key}"
         try:
-            resp = httpx.get(f"{proxy_url.rstrip('/')}/v1/models", timeout=3.0)
+            resp = httpx.get(
+                f"{proxy_url.rstrip('/')}/v1/models",
+                headers=headers,
+                timeout=3.0,
+            )
+            if resp.status_code == 401:
+                print(f"\n  *** CLIProxyAPI at {proxy_url} rejected our API key ***")
+                print(f"  Check api-keys in ~/.cli-proxy-api/config.yaml")
+                print(f"  and llm.api_key in config/default.yaml\n")
+                return
         except (httpx.ConnectError, httpx.TimeoutException):
             print(f"\n  *** CLIProxyAPI is not running at {proxy_url} ***")
             print(f"  Start it with: CLIProxyAPI")
@@ -311,6 +325,10 @@ def run_web(
 
     app, socketio = create_app(config)
 
-    print(f"\n  Ready: http://localhost:{port}\n")
+    print(f"\n  Ready: http://localhost:{port}")
+    print(f"  Press Ctrl+C to stop.\n")
+
+    # Ensure Ctrl+C actually exits — threading mode can swallow KeyboardInterrupt
+    signal.signal(signal.SIGINT, lambda *_: os._exit(0))
 
     socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)

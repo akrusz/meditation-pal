@@ -138,7 +138,9 @@ class MeditationFacilitator:
         print("\n" + "=" * 60)
         print("  Somatic Exploration Meditation Facilitator")
         print("=" * 60)
-        print("\nInitializing...")
+
+        # Pre-load Whisper model before session starts
+        self.stt._load_model()
 
         # Start session
         self.session.start_session()

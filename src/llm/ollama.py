@@ -150,6 +150,7 @@ def create_llm_provider(
         return ClaudeProxyProvider(
             proxy_url=proxy_url or "http://127.0.0.1:8317",
             model=model or "claude-sonnet-4-5-20250929",
+            api_key=api_key,
             max_tokens=max_tokens,
         )
     elif provider == "anthropic":

@@ -48,8 +48,11 @@
     let audioChunks = [];
     let silenceTimer = null;
     let speechDetected = false;
+    let ttsSpeaking = false;       // true while TTS is playing — ignore mic input
+    let preBuffer = [];            // rolling buffer of recent chunks before speech detected
     var SILENCE_THRESHOLD = 0.015; // RMS level below which counts as silence
     var SILENCE_DURATION = 2000;   // ms of silence before auto-submitting
+    var PRE_BUFFER_CHUNKS = 12;    // ~1s of audio to keep before speech onset
 
     // ---- Initialize ----
 
@@ -192,12 +195,16 @@
         var source = audioContext.createMediaStreamSource(mediaStream);
         scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
         audioChunks = [];
+        preBuffer = [];
         speechDetected = false;
         if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
 
         inputEl.placeholder = 'Listening... speak naturally';
 
         scriptProcessor.onaudioprocess = function (e) {
+            // Ignore mic input while TTS is playing to avoid hearing ourselves
+            if (ttsSpeaking) return;
+
             var channelData = e.inputBuffer.getChannelData(0);
             var chunk = new Float32Array(channelData);
 
@@ -212,8 +219,15 @@
                 // Barge-in: stop TTS if the user starts speaking
                 if (!speechDetected && synth && synth.speaking) {
                     synth.cancel();
+                    ttsSpeaking = false;
                 }
-                // Speech detected — keep capturing
+                if (!speechDetected) {
+                    // First moment of speech — prepend the pre-buffer so onset isn't lost
+                    for (var i = 0; i < preBuffer.length; i++) {
+                        audioChunks.push(preBuffer[i]);
+                    }
+                    preBuffer = [];
+                }
                 speechDetected = true;
                 audioChunks.push(chunk);
                 if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
@@ -226,8 +240,13 @@
                         submitUtterance();
                     }, SILENCE_DURATION);
                 }
+            } else {
+                // No speech yet — maintain rolling pre-buffer
+                preBuffer.push(chunk);
+                if (preBuffer.length > PRE_BUFFER_CHUNKS) {
+                    preBuffer.shift();
+                }
             }
-            // If no speech detected yet and below threshold, discard (ambient noise)
         };
 
         source.connect(scriptProcessor);
@@ -316,6 +335,10 @@
         if (preferredVoice) {
             utterance.voice = preferredVoice;
         }
+
+        ttsSpeaking = true;
+        utterance.onend = function () { ttsSpeaking = false; };
+        utterance.onerror = function () { ttsSpeaking = false; };
 
         synth.speak(utterance);
     }
