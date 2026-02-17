@@ -544,37 +544,24 @@ input[type="range"]::-moz-range-thumb {
     align-items: flex-end;
 }
 
-.input-row textarea {
+.voice-status {
     flex: 1;
-    min-height: 42px;
-    max-height: 120px;
-    resize: none;
     padding: 0.6rem 1rem;
-    border-radius: 21px;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    transition: border-color var(--transition);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 42px;
+    height: 42px;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
-.input-row textarea:focus {
-    border-color: var(--accent);
-}
-
-.btn-send, .btn-voice {
+.btn-voice {
     width: 42px;
     height: 42px;
     border-radius: 50%;
     padding: 0;
     flex-shrink: 0;
     border: 1px solid var(--border);
-}
-
-.btn-send:hover {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
 }
 
 .btn-voice.active {

@@ -3,6 +3,8 @@
 import asyncio
 import os
 import signal
+import sys
+import threading
 import time
 from pathlib import Path
 
@@ -32,6 +34,7 @@ class WebMeditationSession:
         pleasant_emphasis: bool = True,
         verbosity: str = "low",
         custom_instructions: str = "",
+        model: str | None = None,
     ):
         self.config = config
         self.intention = intention
@@ -62,7 +65,7 @@ class WebMeditationSession:
 
         self.llm = create_llm_provider(
             provider=config.llm.provider,
-            model=config.llm.model,
+            model=model or config.llm.model,
             proxy_url=config.llm.proxy_url,
             ollama_url=config.llm.ollama_url,
             api_key=config.llm.api_key,
@@ -128,7 +131,9 @@ def create_app(config: Config | None = None) -> tuple[Flask, SocketIO]:
     socketio = SocketIO(app, async_mode="threading", cors_allowed_origins="*")
 
     app.meditation_config = config
-    app.web_sessions = {}
+    app.web_sessions = {}      # session_id → WebMeditationSession
+    app.sid_to_session = {}    # socket sid → session_id
+    app.session_to_sid = {}    # session_id → current socket sid
     app.transcript_logger = TranscriptLogger(
         save_directory=config.session.save_directory,
         include_timestamps=config.session.include_timestamps,
@@ -141,6 +146,7 @@ def create_app(config: Config | None = None) -> tuple[Flask, SocketIO]:
         device=config.stt.device,
     )
     app.whisper_stt._load_model()
+    app.whisper_lock = threading.Lock()
 
     _register_routes(app)
     _register_socketio_events(socketio, app)
@@ -185,6 +191,13 @@ def _register_routes(app: Flask) -> None:
 def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
     """Register WebSocket event handlers."""
 
+    def _get_session(sid):
+        """Look up a WebMeditationSession by socket sid."""
+        session_id = app.sid_to_session.get(sid)
+        if session_id:
+            return app.web_sessions.get(session_id)
+        return None
+
     @socketio.on("connect")
     def handle_connect():
         pass
@@ -192,16 +205,22 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
     @socketio.on("disconnect")
     def handle_disconnect():
         sid = request.sid
-        if sid in app.web_sessions:
-            session_data = app.web_sessions[sid].end()
-            if session_data and app.meditation_config.session.auto_save:
-                app.transcript_logger.save_session(session_data)
-                app.transcript_logger.save_session_text(session_data)
-            del app.web_sessions[sid]
+        # Only unmap the socket — keep the session alive so a reconnect
+        # can pick it back up with full conversation history.
+        app.sid_to_session.pop(sid, None)
 
     @socketio.on("start_session")
     def handle_start_session(data):
         sid = request.sid
+        session_id = data.get("session_id")
+
+        # Reconnection: session already exists, just re-map the new socket
+        if session_id and session_id in app.web_sessions:
+            app.sid_to_session[sid] = session_id
+            app.session_to_sid[session_id] = sid
+            print(f"  [Session] Reconnected sid={sid[:8]}… to session {session_id[:12]}…", flush=True)
+            return
+
         config = app.meditation_config
 
         web_session = WebMeditationSession(
@@ -212,9 +231,15 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
             pleasant_emphasis=data.get("pleasant_emphasis", True),
             verbosity=data.get("verbosity", "low"),
             custom_instructions=data.get("custom_instructions", ""),
+            model=data.get("model"),
         )
 
-        app.web_sessions[sid] = web_session
+        if not session_id:
+            session_id = sid  # fallback
+        app.web_sessions[session_id] = web_session
+        app.sid_to_session[sid] = session_id
+        app.session_to_sid[session_id] = sid
+        print(f"  [Session] New session {session_id[:12]}… for sid={sid[:8]}…", flush=True)
 
         opener = web_session.get_opener()
         emit("facilitator_message", {"text": opener, "type": "opener"})
@@ -222,15 +247,14 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
     @socketio.on("user_message")
     def handle_user_message(data):
         sid = request.sid
-        if sid not in app.web_sessions:
+        web_session = _get_session(sid)
+        if not web_session:
             emit("error", {"message": "No active session"})
             return
 
         text = data.get("text", "").strip()
         if not text:
             return
-
-        web_session = app.web_sessions[sid]
 
         emit("facilitator_typing", {"typing": True})
 
@@ -248,43 +272,83 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
     @socketio.on("end_session")
     def handle_end_session():
         sid = request.sid
-        if sid not in app.web_sessions:
+        session_id = app.sid_to_session.pop(sid, None)
+        if not session_id or session_id not in app.web_sessions:
             return
 
-        web_session = app.web_sessions[sid]
+        app.session_to_sid.pop(session_id, None)
+        web_session = app.web_sessions.pop(session_id)
 
         closer = web_session.prompts.get_session_closer()
         web_session.session.add_assistant_message(closer)
 
         session_data = web_session.end()
-        session_id = None
+        saved_id = None
         if session_data and app.meditation_config.session.auto_save:
             app.transcript_logger.save_session(session_data)
             app.transcript_logger.save_session_text(session_data)
-            session_id = session_data.get("session_id")
-
-        del app.web_sessions[sid]
+            saved_id = session_data.get("session_id")
 
         emit("session_ended", {
             "closer": closer,
-            "session_id": session_id,
+            "session_id": saved_id,
         })
 
     @socketio.on("audio_data")
     def handle_audio_data(data):
-        """Receive raw PCM float32 audio and transcribe with Whisper."""
+        """Receive raw PCM float32 audio and transcribe with Whisper.
+
+        Runs transcription in a background task so the event handler
+        returns immediately — this keeps the socket alive during slow
+        Whisper inference.
+        """
         try:
             audio_bytes = data.get("audio")
             sample_rate = data.get("sample_rate", 16000)
-
             audio = np.frombuffer(audio_bytes, dtype=np.float32)
-
-            result = app.whisper_stt.transcribe(audio, sample_rate=sample_rate)
-            text = result.text.strip()
-
-            emit("transcription", {"text": text})
+            duration = len(audio) / sample_rate
+            print(f"  [STT] Received {len(audio)} samples @ {sample_rate}Hz ({duration:.1f}s)", flush=True)
         except Exception as e:
+            print(f"  [STT] Error parsing audio: {e}", flush=True)
             emit("transcription", {"text": "", "error": str(e)})
+            return
+
+        # Look up session so we can emit to the right socket even after
+        # a reconnection changes the sid.
+        session_id = app.sid_to_session.get(request.sid)
+
+        def _transcribe():
+            try:
+                if not app.whisper_lock.acquire(timeout=15):
+                    print("  [STT] Whisper busy, dropping audio", flush=True)
+                    target_sid = app.session_to_sid.get(session_id)
+                    if target_sid:
+                        socketio.emit("transcription", {"text": "", "error": "busy"}, to=target_sid)
+                    return
+
+                try:
+                    t0 = time.time()
+                    result = app.whisper_stt.transcribe(audio, sample_rate=sample_rate)
+                    elapsed = time.time() - t0
+                    text = result.text.strip()
+                    print(f"  [STT] Transcribed in {elapsed:.1f}s: \"{text}\"", flush=True)
+                finally:
+                    app.whisper_lock.release()
+
+                # Emit to whatever socket is currently mapped to this session
+                # (may have changed due to reconnection during transcription).
+                target_sid = app.session_to_sid.get(session_id)
+                if target_sid:
+                    socketio.emit("transcription", {"text": text}, to=target_sid)
+                else:
+                    print("  [STT] No active socket for session, dropping result", flush=True)
+            except Exception as e:
+                print(f"  [STT] Error: {e}", flush=True)
+                target_sid = app.session_to_sid.get(session_id)
+                if target_sid:
+                    socketio.emit("transcription", {"text": "", "error": str(e)}, to=target_sid)
+
+        socketio.start_background_task(_transcribe)
 
 
 def run_web(
@@ -329,6 +393,10 @@ def run_web(
     print(f"  Press Ctrl+C to stop.\n")
 
     # Ensure Ctrl+C actually exits — threading mode can swallow KeyboardInterrupt
-    signal.signal(signal.SIGINT, lambda *_: os._exit(0))
+    def _shutdown(*_):
+        print("\n  Shutting down...", flush=True)
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, _shutdown)
 
     socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
