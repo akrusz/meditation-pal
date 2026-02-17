@@ -99,6 +99,7 @@ class WebMeditationSession:
             )
             response = result.text.strip()
         except Exception as e:
+            print(f"  [LLM ERROR] {type(e).__name__}: {e}", flush=True)
             response = "Mmm. What do you notice now?"
 
         self.session.add_assistant_message(response)
