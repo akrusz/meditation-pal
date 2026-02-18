@@ -2,7 +2,7 @@
 
 a meditation facilitator that listens and responds. runs in your browser, uses an LLM to guide you, whisper for speech recognition, and your mic for voice input
 
-works on macos and linux. you just need a claude subscription (via CLIProxyAPI) or a local ollama server
+works on macos and linux. bring your own LLM — claude subscription via CLIProxyAPI, anthropic API key, openrouter for cheap non-claude models (deepseek, kimi), or local ollama
 
 ## what it does
 
@@ -16,7 +16,7 @@ you need:
 - python 3.10+
 - [uv](https://docs.astral.sh/uv/) for package management
 - a mic
-- either [CLIProxyAPI](https://github.com/CLIProxyAPI/CLIProxyAPI) (uses your existing claude subscription) or [ollama](https://ollama.ai) for the LLM
+- an LLM provider (see below)
 
 then:
 
@@ -37,7 +37,7 @@ open [localhost:5555](http://localhost:5555) and you're in
 
 - **audio capture** -- Web Audio API in the browser, shipped as raw PCM to the server
 - **speech recognition** -- openai whisper running locally (the `small` model, ~500mb)
-- **LLM** -- claude via CLIProxyAPI, or ollama, or direct anthropic/openai API
+- **LLM** -- claude via CLIProxyAPI or anthropic API, openrouter (deepseek, kimi, etc.), openai, or local ollama
 - **TTS** -- macos `say` command on mac, browser speechSynthesis on linux. piper-tts is an option if you want better quality server-side audio on linux
 
 ## facilitation styles
@@ -63,7 +63,7 @@ tts:
   rate: 160
 
 llm:
-  provider: claude_proxy   # claude_proxy, ollama, anthropic, openai
+  provider: claude_proxy   # claude_proxy, anthropic, openrouter, openai, ollama
   model: claude-sonnet-4-5-20250929
 
 facilitation:
@@ -76,15 +76,29 @@ stt:
 
 ### LLM providers
 
+the web UI has a provider dropdown that shows which providers are configured. unavailable ones are marked with ✘ and show what you need to do
+
 **CLIProxyAPI** (default) -- uses your claude subscription. install via homebrew, the install script handles it
+
+**anthropic API** -- direct API access, no proxy needed
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+then select "Anthropic (API Key)" in the web UI, or set `llm.provider: anthropic` in config
+
+**openrouter** -- access deepseek, kimi, and other models at low cost
+```bash
+export OPENROUTER_API_KEY=sk-or-...
+```
+then select "OpenRouter" in the web UI, or set `llm.provider: openrouter` in config. default model is DeepSeek V3.2
+
+**openai** -- set `OPENAI_API_KEY` and `llm.provider: openai`. supports custom base URLs via `llm.openai_base_url` for any OpenAI-compatible endpoint
 
 **ollama** -- fully local, no API key needed
 ```bash
 ollama pull llama3
 ```
 then set `llm.provider: ollama` in your config
-
-**anthropic / openai** -- set the API key as an env var and point the config at it
 
 ## cli mode
 
