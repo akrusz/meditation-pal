@@ -1,6 +1,6 @@
 # meditation pal
 
-voice is an overpowered and underrated meditation/inner work tool.
+your voice is an overpowered and underrated meditation/inner work tool.
 
 this is a meditation facilitator that listens and responds to your voice. runs in your browser, uses an LLM to guide you, whisper for speech recognition, and your mic for voice input
 
