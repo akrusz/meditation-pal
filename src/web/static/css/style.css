@@ -657,6 +657,25 @@ input[type="range"]::-moz-range-thumb {
     user-select: none;
 }
 
+.speed-control {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.speed-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.speed-control input[type="range"] {
+    width: 80px;
+    height: 3px;
+    margin: 0;
+}
+
 .btn-end {
     font-size: 0.8rem;
     padding: 0.4rem 0.8rem;

@@ -11,6 +11,7 @@
     const voiceStatus = document.getElementById('voice-status');
     const ttsToggle = document.getElementById('tts-toggle');
     const endBtn = document.getElementById('end-btn');
+    const speedSlider = document.getElementById('speed-slider');
     const typingEl = document.getElementById('typing-indicator');
     const timerEl = document.getElementById('timer');
     const orbEl = document.getElementById('orb');
@@ -25,6 +26,7 @@
     let sessionId = null;          // stable ID that survives socket reconnections
     let initialConnectDone = false; // distinguishes first connect from reconnects
     let queuedSpeech = null;       // opener TTS queued until user gesture (mic permission)
+    let ttsRate = 160;             // speech rate in WPM — synced to server + browser TTS
     const synth = window.speechSynthesis || null;
     let preferredVoice = null;
 
@@ -103,6 +105,10 @@
         // Event listeners
         voiceBtn.addEventListener('click', toggleVoice);
         endBtn.addEventListener('click', endSession);
+        speedSlider.addEventListener('input', function () {
+            ttsRate = parseInt(speedSlider.value);
+            socket.emit('set_tts_rate', { rate: ttsRate });
+        });
 
         // Start session
         socket.emit('start_session', params);
@@ -555,7 +561,7 @@
         synth.cancel();
 
         var utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
+        utterance.rate = ttsRate / 180;  // convert WPM to browser rate (180 WPM ≈ 1.0)
         utterance.pitch = 0.95;
 
         if (preferredVoice) {

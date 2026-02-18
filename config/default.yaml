@@ -14,7 +14,7 @@ stt:
 tts:
   engine: macos  # macos, piper, parakeet, elevenlabs
   voice: "Zoe (Premium)"
-  rate: 180  # words per minute
+  rate: 160  # words per minute
 
   # Parakeet options (if engine: parakeet)
   # model_name: nvidia/parakeet-tts-1.1b

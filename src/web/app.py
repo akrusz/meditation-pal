@@ -320,6 +320,13 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
             "audio": audio,
         })
 
+    @socketio.on("set_tts_rate")
+    def handle_set_tts_rate(data):
+        rate = data.get("rate")
+        if rate and isinstance(rate, (int, float)):
+            rate = max(80, min(180, int(rate)))
+            app.server_tts.set_rate(rate)
+
     @socketio.on("audio_data")
     def handle_audio_data(data):
         """Receive raw PCM float32 audio and transcribe with Whisper.
