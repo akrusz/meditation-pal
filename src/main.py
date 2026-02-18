@@ -106,9 +106,14 @@ class MeditationFacilitator:
         )
         self.pacing = PacingController(pacing_config)
 
+        # Convert legacy pleasant_emphasis bool to modifiers list
+        modifiers = getattr(self.config.facilitation, 'modifiers', None)
+        if modifiers is None:
+            modifiers = ["orient_pleasant"] if self.config.facilitation.pleasant_emphasis else []
+
         prompt_config = PromptConfig(
             directiveness=self.config.facilitation.directiveness,
-            pleasant_emphasis=self.config.facilitation.pleasant_emphasis,
+            modifiers=modifiers,
             verbosity=self.config.facilitation.verbosity,
             custom_instructions=self.config.facilitation.custom_instructions,
         )

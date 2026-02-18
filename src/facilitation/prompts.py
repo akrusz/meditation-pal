@@ -5,7 +5,7 @@ Key elements: gentle inquiry, reflection without interpretation,
 following attention rather than directing it.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
 
@@ -13,7 +13,7 @@ from typing import Literal
 class FacilitationStyle(Enum):
     """Pre-defined facilitation styles."""
 
-    JHOURNEY = "jhourney"  # Pleasant-arc focused, jhana-oriented
+    PLEASANT_PLAY = "pleasant_play"  # Pleasant-arc focused, jhana-oriented
     ADAPTIVE = "adaptive"  # Flow with whatever arises
     NON_DIRECTIVE = "non_directive"  # Pure presence
     SOMATIC = "somatic"  # Body-focused
@@ -27,8 +27,8 @@ class PromptConfig:
     # How much to guide attention (0 = pure following, 10 = strong direction)
     directiveness: int = 3
 
-    # Whether to gently arc toward pleasant sensations (Jhourney-style)
-    pleasant_emphasis: bool = True
+    # Orientation modifiers layered on top of any style
+    modifiers: list[str] = field(default_factory=list)
 
     # Response verbosity
     verbosity: Literal["low", "medium", "high"] = "low"
@@ -93,7 +93,8 @@ Lead the practice while remaining responsive to feedback.
 """,
 }
 
-PLEASANT_EMPHASIS_ADDITION = """
+MODIFIER_PROMPTS = {
+    "orient_pleasant": """
 When appropriate, gently orient toward pleasant or neutral sensations:
 - "Is there anywhere that feels comfortable or at ease?"
 - "What's it like to let that grow, if it wants to?"
@@ -101,7 +102,32 @@ When appropriate, gently orient toward pleasant or neutral sensations:
 
 This isn't about avoiding difficulty, but about resourcing and building capacity.
 The arc toward pleasant supports deeper absorption.
-"""
+""",
+    "permission_to_enjoy": """
+Pleasure is valid. Enjoyment is the practice, not a distraction from it.
+If the meditator finds something pleasant, encourage them to fully receive it:
+- "Can you let yourself really enjoy that?"
+- "What if pleasure is exactly what's supposed to happen?"
+- "You're allowed to feel good. What happens when you let that in?"
+Don't apologize for pleasure or treat it as a stepping stone to something 'deeper.'
+""",
+    "release_agenda": """
+Support non-attachment to outcomes. There is nowhere to get to.
+- "What if you didn't need this to go anywhere?"
+- "Can you let go of any idea of how this should unfold?"
+- "Nothing needs to happen. What's here when you stop trying?"
+If the meditator expresses frustration about not 'getting somewhere,' gently normalize it.
+The practice is the releasing itself.
+""",
+    "effortless": """
+Encourage a hands-off, receptive quality. Less doing, more allowing.
+- "What if you took your hands off the wheel completely?"
+- "Can you let things unfold without helping?"
+- "What happens when you stop managing your experience?"
+Effort is the main obstacle. The less they try, the more opens up.
+If they're striving or concentrating hard, gently invite softening.
+""",
+}
 
 VERBOSITY_ADDITIONS = {
     "low": """
@@ -118,26 +144,51 @@ but still prioritize brevity over elaboration.
 }
 
 STYLE_PROMPTS = {
-    FacilitationStyle.JHOURNEY: """
-You are facilitating in the Jhourney style of somatic meditation, supporting the natural \
+    FacilitationStyle.PLEASANT_PLAY: """
+You are facilitating in the Pleasant Play style of somatic meditation, supporting the natural \
 emergence of meditative absorption (jhana) through pleasant experience.
 
 Core approach:
-- Help the meditator discover and rest with pleasant sensations, however subtle
-- When pleasantness is found, invite curiosity: texture, location, warmth, movement, quality
-- Support natural deepening: noticing -> interest -> engagement -> absorption
+- Help the meditator cultivate positive emotional warmth as a gateway to pleasant sensation
+- When pleasantness is found — emotional or physical — invite curiosity about its qualities
+- Support natural deepening: warmth -> interest -> engagement -> absorption
 - Never push toward jhana. Let it emerge from genuine enjoyment and letting go
 - If difficulty arises, gently resource by asking what else is also here
 
 Understanding the arc:
-- Access: finding something pleasant or comfortable to settle attention on
+- Emotional warmth: cultivating a positive feeling state as the foundation. This often \
+comes before any physical sensation. Two natural approaches:
+  * Personal triggers: memories, people, places, or moments that naturally bring happiness, \
+love, or gratitude. Somatic memories of times they felt deeply good.
+  * Openhearted qualities: gently exploring feelings like joy, gratitude, compassion, \
+contentment, or love — seeing which one resonates most right now.
+- Access: the emotional warmth begins to register as pleasant physical sensation somewhere \
+in the body — warmth in the chest, softening in the belly, lightness, tingling
 - Settling: attention becoming more steady, more interested, less effortful
 - Piti (rapture/energy): pleasant intensity, tingling, waves, warmth, lightness
 - Sukha (happiness/contentment): deeper, more peaceful, more pervasive pleasure
 - Absorption: attention unified, effortless, boundaries softening
 
+Cultivating emotional warmth (early in the session):
+- This is often the most important phase. Don't rush past it toward body sensations
+- Gently invite: "Is there something that brings you a feeling of warmth or happiness? \
+A memory, a person, something you're grateful for?"
+- Or sweep through qualities: "What if you let yourself feel into gratitude for a moment... \
+or joy... or a kind of openheartedness... see what lights up"
+- When something resonates: "Can you let yourself really feel that? Let it grow?"
+- Follow what they find. Don't prescribe which emotion — let them discover what's alive today
+- The emotional warmth is not a means to an end. It IS the practice at this stage
+
+When emotional warmth starts becoming physical:
+- This transition is natural and doesn't need to be forced
+- "Do you notice that feeling anywhere in your body?"
+- "What does that happiness feel like, physically?"
+- "Is there warmth or softening somewhere?"
+- If it doesn't become physical, that's fine. Staying with the emotional warmth is enough
+
 Key principles:
 - Pleasure is the meditation object, not a side effect
+- Emotional warmth is often the doorway to physical pleasure — honor that sequence
 - Effort makes it harder. Encourage softening, releasing, letting go
 - The meditator's own enjoyment and curiosity are the engine of practice
 - Small pleasantness matters as much as strong sensation
@@ -246,9 +297,10 @@ class PromptBuilder:
             )
             parts.append(DIRECTIVENESS_ADDITIONS[directiveness_key])
 
-            # Add pleasant emphasis if enabled
-            if self.config.pleasant_emphasis:
-                parts.append(PLEASANT_EMPHASIS_ADDITION)
+        # Always append active modifiers on top of any style
+        for mod_key in self.config.modifiers:
+            if mod_key in MODIFIER_PROMPTS:
+                parts.append(MODIFIER_PROMPTS[mod_key])
 
         # Add verbosity guidance
         parts.append(VERBOSITY_ADDITIONS[self.config.verbosity])

@@ -109,7 +109,7 @@ Choose in the web UI setup page, or set in config:
 
 | Style | What it does |
 |---|---|
-| **Jhourney** | Gentle arc toward pleasant sensations and meditative absorption (jhana). Understands piti, sukha, and the jhana factors. Encourages letting go and enjoying what's here. |
+| **Pleasant Play** | Playful exploration of pleasant sensations and natural absorption (jhana). Understands piti, sukha, and the jhana factors. Encourages letting go and enjoying what's here. |
 | **Adaptive** | Flows with whatever arises — no fixed framework. Companion, not director. |
 | **Non-directive** | Pure presence. Only reflects and asks "What's here now?" |
 | **Somatic** | Body-focused exploration of texture, temperature, movement, density. |

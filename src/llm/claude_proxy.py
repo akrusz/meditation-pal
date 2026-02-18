@@ -37,16 +37,12 @@ class ClaudeProxyProvider(BaseLLMProvider):
         self.proxy_url = proxy_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
-        self._client: httpx.AsyncClient | None = None
-
-    async def _get_client(self) -> httpx.AsyncClient:
-        """Get or create HTTP client."""
-        if self._client is None:
-            headers = {}
-            if self.api_key:
-                headers["Authorization"] = f"Bearer {self.api_key}"
-            self._client = httpx.AsyncClient(timeout=self.timeout, headers=headers)
-        return self._client
+    def _make_client(self) -> httpx.AsyncClient:
+        """Create a new HTTP client."""
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return httpx.AsyncClient(timeout=self.timeout, headers=headers)
 
     async def complete(
         self,
@@ -58,8 +54,6 @@ class ClaudeProxyProvider(BaseLLMProvider):
 
         The proxy exposes an OpenAI-compatible endpoint.
         """
-        client = await self._get_client()
-
         # Build OpenAI-format messages
         openai_messages = []
 
@@ -76,17 +70,18 @@ class ClaudeProxyProvider(BaseLLMProvider):
             })
 
         # Make request to proxy
-        response = await client.post(
-            f"{self.proxy_url}/v1/chat/completions",
-            json={
-                "model": self.model,
-                "messages": openai_messages,
-                "max_tokens": max_tokens or self.max_tokens,
-            },
-        )
-        response.raise_for_status()
+        async with self._make_client() as client:
+            response = await client.post(
+                f"{self.proxy_url}/v1/chat/completions",
+                json={
+                    "model": self.model,
+                    "messages": openai_messages,
+                    "max_tokens": max_tokens or self.max_tokens,
+                },
+            )
+            response.raise_for_status()
 
-        data = response.json()
+            data = response.json()
 
         # Extract response
         choice = data["choices"][0]
@@ -102,9 +97,3 @@ class ClaudeProxyProvider(BaseLLMProvider):
             finish_reason=finish_reason,
             tokens_used=tokens_used,
         )
-
-    async def close(self) -> None:
-        """Close the HTTP client."""
-        if self._client:
-            await self._client.aclose()
-            self._client = None

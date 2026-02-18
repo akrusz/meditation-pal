@@ -65,6 +65,9 @@
     let listening = false;         // true when actively detecting speech
     let ttsSpeaking = false;       // true while TTS is playing — ignore mic input
     let ttsMismatchStart = 0;      // timestamp when ttsSpeaking/synth.speaking diverged
+    let serverAudioSource = null;  // AudioBufferSourceNode for server TTS playback
+    let serverAudioPlaying = false; // true while server-generated audio is playing
+    let queuedAudio = null;        // server audio bytes queued until voice activates
     let preBuffer = [];            // rolling buffer of recent chunks before speech detected
     let pendingTranscriptions = 0;  // count of in-flight transcription requests
 
@@ -95,6 +98,7 @@
         // Generate a stable session ID that survives socket reconnections
         sessionId = 'ses-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         params.session_id = sessionId;
+        params.tts = ttsToggle.checked;
 
         // Event listeners
         voiceBtn.addEventListener('click', toggleVoice);
@@ -160,9 +164,10 @@
             // If voice isn't active yet (e.g. opener arrives before mic
             // permission is granted), queue the speech for later.
             if (voiceActive) {
-                speak(data.text);
+                speak(data.text, data.audio);
             } else {
                 queuedSpeech = data.text;
+                queuedAudio = data.audio || null;
             }
         }
     });
@@ -184,7 +189,24 @@
         }
 
         if (ttsToggle.checked && data.closer) {
-            speak(data.closer);
+            // audioContext may have been closed by deactivateVoice() —
+            // create a temporary one for playing the closer audio.
+            if (data.audio && !audioContext) {
+                var tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
+                var buf = data.audio instanceof ArrayBuffer ? data.audio : data.audio.buffer || data.audio;
+                tmpCtx.decodeAudioData(buf.slice(0), function (decoded) {
+                    var src = tmpCtx.createBufferSource();
+                    src.buffer = decoded;
+                    src.connect(tmpCtx.destination);
+                    src.onended = function () { tmpCtx.close(); };
+                    src.start(0);
+                }, function () {
+                    tmpCtx.close();
+                    speakBrowser(data.closer);
+                });
+            } else {
+                speak(data.closer, data.audio);
+            }
         }
 
         endedOverlay.style.display = 'flex';
@@ -256,8 +278,11 @@
                 // Chrome sometimes fails to fire onend, leaving ttsSpeaking
                 // stuck at true.  If synth has actually stopped for longer
                 // than TTS_WATCHDOG_MS, force-reset the flag.
+                // For server audio, check serverAudioPlaying directly.
                 if (ttsSpeaking) {
-                    if (synth && !synth.speaking) {
+                    var synthDone = synth ? !synth.speaking : true;
+                    var serverDone = !serverAudioPlaying;
+                    if (synthDone && serverDone) {
                         if (ttsMismatchStart === 0) {
                             ttsMismatchStart = Date.now();
                         } else if (Date.now() - ttsMismatchStart > TTS_WATCHDOG_MS) {
@@ -285,14 +310,15 @@
                 // the user speaking over it.  If energy stays above a higher
                 // threshold for a few consecutive chunks, cancel TTS and
                 // start capturing immediately.
-                var synthActive = ttsSpeaking || (synth && synth.speaking);
+                var synthActive = ttsSpeaking || (synth && synth.speaking) || serverAudioPlaying;
                 if (synthActive) {
                     if (energy > BARGE_IN_THRESHOLD) {
                         bargeInCount++;
                         if (bargeInCount >= BARGE_IN_CHUNKS) {
                             // User is speaking — cancel TTS and resume capture
                             console.log('Barge-in detected, cancelling TTS');
-                            synth.cancel();
+                            stopServerAudio();
+                            if (synth) synth.cancel();
                             ttsSpeaking = false;
                             ttsMismatchStart = 0;
                             bargeInCount = 0;
@@ -383,8 +409,9 @@
 
             // Speak any opener that was queued before mic permission was granted
             if (queuedSpeech && ttsToggle.checked) {
-                speak(queuedSpeech);
+                speak(queuedSpeech, queuedAudio);
                 queuedSpeech = null;
+                queuedAudio = null;
             }
 
             beginListening();
@@ -475,6 +502,7 @@
         voiceBtn.classList.remove('active');
         setStatus('Microphone off. Click mic to resume.');
 
+        stopServerAudio();
         pendingTranscriptions = 0;
         if (scriptProcessor) { scriptProcessor.disconnect(); scriptProcessor = null; }
         if (sourceNode) { sourceNode.disconnect(); sourceNode = null; }
@@ -511,11 +539,20 @@
         }
     });
 
-    // ---- Voice Output (Speech Synthesis) ----
+    // ---- Voice Output ----
 
-    function speak(text) {
+    function speak(text, audioBytes) {
+        // Try server-generated audio first, fall back to browser speechSynthesis
+        if (audioBytes && audioContext) {
+            playServerAudio(audioBytes, text);
+        } else {
+            speakBrowser(text);
+        }
+    }
+
+    function speakBrowser(text) {
         if (!synth) return;
-        synth.cancel(); // cancel any current speech
+        synth.cancel();
 
         var utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 0.9;
@@ -527,7 +564,6 @@
 
         ttsSpeaking = true;
         utterance.onend = function () {
-            // Cooldown: mic stays muted briefly so it doesn't pick up speaker echo
             setTimeout(function () { ttsSpeaking = false; }, TTS_COOLDOWN_MS);
         };
         utterance.onerror = function () {
@@ -535,6 +571,42 @@
         };
 
         synth.speak(utterance);
+    }
+
+    function playServerAudio(audioBytes, fallbackText) {
+        stopServerAudio();
+        if (synth) synth.cancel();
+
+        // audioBytes may be an ArrayBuffer or a binary blob from Socket.IO
+        var buffer = audioBytes instanceof ArrayBuffer ? audioBytes : audioBytes.buffer || audioBytes;
+
+        ttsSpeaking = true;
+        serverAudioPlaying = true;
+
+        audioContext.decodeAudioData(buffer.slice(0), function (decoded) {
+            serverAudioSource = audioContext.createBufferSource();
+            serverAudioSource.buffer = decoded;
+            serverAudioSource.connect(audioContext.destination);
+            serverAudioSource.onended = function () {
+                serverAudioPlaying = false;
+                serverAudioSource = null;
+                setTimeout(function () { ttsSpeaking = false; }, TTS_COOLDOWN_MS);
+            };
+            serverAudioSource.start(0);
+        }, function (err) {
+            console.warn('Server audio decode failed, falling back to browser TTS:', err);
+            serverAudioPlaying = false;
+            ttsSpeaking = false;
+            if (fallbackText) speakBrowser(fallbackText);
+        });
+    }
+
+    function stopServerAudio() {
+        if (serverAudioSource) {
+            try { serverAudioSource.stop(); } catch (e) { /* already stopped */ }
+            serverAudioSource = null;
+        }
+        serverAudioPlaying = false;
     }
 
     // ---- Timer ----

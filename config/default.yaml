@@ -65,7 +65,7 @@ pacing:
 
 facilitation:
   directiveness: 3          # 0-10 scale
-  pleasant_emphasis: true   # Jhourney-style arc toward pleasant
+  pleasant_emphasis: true   # Orient toward pleasant sensations (legacy; web UI uses modifiers)
   verbosity: low           # low, medium, high
   custom_instructions: |
     Feel free to suggest releasing the need to pay attention to anything specific.

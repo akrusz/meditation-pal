@@ -24,11 +24,11 @@
         <div class="form-group">
             <label>Facilitation Style</label>
             <div class="style-cards">
-                <label class="style-card selected" data-style="jhourney">
-                    <input type="radio" name="style" value="jhourney" checked>
+                <label class="style-card selected" data-style="pleasant_play">
+                    <input type="radio" name="style" value="pleasant_play" checked>
                     <div class="style-card-inner">
-                        <span class="style-name">Jhourney</span>
-                        <span class="style-desc">Gentle arc toward pleasant sensations and absorption</span>
+                        <span class="style-name">Pleasant Play</span>
+                        <span class="style-desc">Playful exploration of pleasant sensations and natural absorption</span>
                     </div>
                 </label>
                 <label class="style-card" data-style="adaptive">
@@ -99,16 +99,41 @@
                 <option value="claude-opus-4-6">Claude Opus 4.6</option>
                 <option value="claude-opus-4-5-20251101">Claude Opus 4.5</option>
                 <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
-                <option value="claude-3-opus-20240229">Claude 3 Opus</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label class="checkbox-label">
-                <input type="checkbox" id="pleasant_emphasis" name="pleasant_emphasis" checked>
-                <span class="checkmark"></span>
-                Orient toward pleasant sensations
-            </label>
+            <label>Orientation</label>
+            <div class="modifier-toggles">
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="modifier" value="orient_pleasant" checked>
+                    <div class="modifier-info">
+                        <span class="modifier-name">Orient toward pleasant</span>
+                        <span class="modifier-desc">Gently steer toward pleasant or neutral sensations</span>
+                    </div>
+                </label>
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="modifier" value="permission_to_enjoy">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Permission to enjoy</span>
+                        <span class="modifier-desc">Pleasure is valid — enjoyment is the practice</span>
+                    </div>
+                </label>
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="modifier" value="release_agenda">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Release agenda</span>
+                        <span class="modifier-desc">Non-attachment to outcomes, nowhere to get to</span>
+                    </div>
+                </label>
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="modifier" value="effortless">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Effortless</span>
+                        <span class="modifier-desc">Hands off the wheel — let things unfold</span>
+                    </div>
+                </label>
+            </div>
         </div>
 
         <details class="advanced-settings">
@@ -151,11 +176,15 @@
     document.getElementById('setup-form').addEventListener('submit', (e) => {
         e.preventDefault();
 
+        const modifiers = Array.from(
+            document.querySelectorAll('input[name="modifier"]:checked')
+        ).map(el => el.value);
+
         const params = {
             intention: document.getElementById('intention').value,
             style: document.querySelector('input[name="style"]:checked').value,
             directiveness: parseInt(dirSlider.value),
-            pleasant_emphasis: document.getElementById('pleasant_emphasis').checked,
+            modifiers: modifiers,
             verbosity: document.getElementById('verbosity').value,
             custom_instructions: document.getElementById('custom_instructions').value,
             model: document.getElementById('model').value,

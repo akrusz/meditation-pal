@@ -20,6 +20,7 @@ from ..facilitation.prompts import PromptBuilder, PromptConfig, FacilitationStyl
 from ..facilitation.session import SessionManager
 from ..logging.transcript import TranscriptLogger
 from ..stt.whisper import WhisperSTT
+from ..tts.macos import MacOSTTS
 
 
 class WebMeditationSession:
@@ -29,20 +30,22 @@ class WebMeditationSession:
         self,
         config: Config,
         intention: str = "",
-        style: str = "jhourney",
+        style: str = "pleasant_play",
         directiveness: int = 3,
-        pleasant_emphasis: bool = True,
+        modifiers: list[str] | None = None,
         verbosity: str = "low",
         custom_instructions: str = "",
         model: str | None = None,
+        tts_enabled: bool = True,
     ):
         self.config = config
         self.intention = intention
+        self.tts_enabled = tts_enabled
         self.start_time = time.time()
 
         # Map style string to enum
         style_map = {
-            "jhourney": FacilitationStyle.JHOURNEY,
+            "pleasant_play": FacilitationStyle.PLEASANT_PLAY,
             "non_directive": FacilitationStyle.NON_DIRECTIVE,
             "somatic": FacilitationStyle.SOMATIC,
             "open": FacilitationStyle.OPEN,
@@ -51,7 +54,7 @@ class WebMeditationSession:
 
         prompt_config = PromptConfig(
             directiveness=directiveness,
-            pleasant_emphasis=pleasant_emphasis,
+            modifiers=modifiers or [],
             verbosity=verbosity,
             custom_instructions=custom_instructions,
             style=style_map.get(style),
@@ -138,6 +141,12 @@ def create_app(config: Config | None = None) -> tuple[Flask, SocketIO]:
     app.transcript_logger = TranscriptLogger(
         save_directory=config.session.save_directory,
         include_timestamps=config.session.include_timestamps,
+    )
+
+    # Initialize server-side TTS for high-quality audio
+    app.server_tts = MacOSTTS(
+        voice=config.tts.voice,
+        rate=config.tts.rate,
     )
 
     # Initialize Whisper STT and pre-load model for fast first transcription
@@ -227,12 +236,13 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
         web_session = WebMeditationSession(
             config=config,
             intention=data.get("intention", ""),
-            style=data.get("style", "jhourney"),
+            style=data.get("style", "pleasant_play"),
             directiveness=data.get("directiveness", 3),
-            pleasant_emphasis=data.get("pleasant_emphasis", True),
+            modifiers=data.get("modifiers", []),
             verbosity=data.get("verbosity", "low"),
             custom_instructions=data.get("custom_instructions", ""),
             model=data.get("model"),
+            tts_enabled=data.get("tts", True),
         )
 
         if not session_id:
@@ -243,7 +253,10 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
         print(f"  [Session] New session {session_id[:12]}… for sid={sid[:8]}…", flush=True)
 
         opener = web_session.get_opener()
-        emit("facilitator_message", {"text": opener, "type": "opener"})
+        audio = None
+        if web_session.tts_enabled:
+            audio = app.server_tts.speak_to_bytes(opener)
+        emit("facilitator_message", {"text": opener, "type": "opener", "audio": audio})
 
     @socketio.on("user_message")
     def handle_user_message(data):
@@ -261,7 +274,10 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
 
         try:
             response = asyncio.run(web_session.generate_response(text))
-            emit("facilitator_message", {"text": response, "type": "response"})
+            audio = None
+            if web_session.tts_enabled:
+                audio = app.server_tts.speak_to_bytes(response)
+            emit("facilitator_message", {"text": response, "type": "response", "audio": audio})
         except Exception:
             emit("facilitator_message", {
                 "text": "Mmm. What do you notice now?",
@@ -290,9 +306,13 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
             app.transcript_logger.save_session_text(session_data)
             saved_id = session_data.get("session_id")
 
+        audio = None
+        if web_session.tts_enabled:
+            audio = app.server_tts.speak_to_bytes(closer)
         emit("session_ended", {
             "closer": closer,
             "session_id": saved_id,
+            "audio": audio,
         })
 
     @socketio.on("audio_data")

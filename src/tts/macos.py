@@ -2,7 +2,8 @@
 
 import asyncio
 import subprocess
-from typing import Literal
+import tempfile
+from pathlib import Path
 
 
 class MacOSTTS:
@@ -66,6 +67,39 @@ class MacOSTTS:
 
         cmd = ["say", "-v", self.voice, "-r", str(self.rate), text]
         subprocess.run(cmd, check=True)
+
+    def speak_to_bytes(self, text: str) -> bytes | None:
+        """Generate speech as WAV bytes (synchronous, blocking).
+
+        Returns WAV file bytes, or None on failure.
+        """
+        if not text.strip():
+            return None
+
+        tmp = None
+        try:
+            tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            tmp.close()
+
+            cmd = [
+                "say", "-v", self.voice, "-r", str(self.rate),
+                "-o", tmp.name,
+                "--file-format=WAVE", "--data-format=LEI16",
+                text,
+            ]
+            subprocess.run(cmd, check=True, capture_output=True)
+
+            wav_bytes = Path(tmp.name).read_bytes()
+            return wav_bytes
+        except Exception as e:
+            print(f"  [TTS] Error generating audio: {e}", flush=True)
+            return None
+        finally:
+            if tmp:
+                try:
+                    Path(tmp.name).unlink(missing_ok=True)
+                except Exception:
+                    pass
 
     def stop(self) -> None:
         """Stop any current speech."""

@@ -358,6 +358,60 @@ input[type="range"]::-moz-range-thumb {
     color: var(--text-secondary);
 }
 
+/* Modifier toggles */
+
+.modifier-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.modifier-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.modifier-toggle:hover {
+    border-color: var(--text-muted);
+}
+
+.modifier-toggle:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+}
+
+.modifier-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    margin-top: 1px;
+    flex-shrink: 0;
+}
+
+.modifier-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.modifier-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.modifier-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
 /* Advanced settings */
 
 .advanced-settings {
