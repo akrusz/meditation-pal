@@ -128,7 +128,7 @@ body {
 /* ---- Main ---- */
 
 .main {
-    max-width: 720px;
+    max-width: 820px;
     margin: 0 auto;
     padding: 2rem 1.5rem;
 }
@@ -189,7 +189,7 @@ body {
 
 .btn-small {
     padding: 0.3rem 0.8rem;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
 }
 
 /* ============================================
@@ -197,7 +197,7 @@ body {
    ============================================ */
 
 .setup-container {
-    max-width: 560px;
+    max-width: 680px;
     margin: 0 auto;
 }
 
@@ -233,7 +233,7 @@ body {
 }
 
 .form-group label {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 500;
     color: var(--text-secondary);
     display: flex;
@@ -244,7 +244,7 @@ body {
 .optional {
     font-weight: 400;
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.85rem;
 }
 
 .form-row {
@@ -335,7 +335,7 @@ input[type="range"]::-moz-range-thumb {
 .range-labels {
     display: flex;
     justify-content: space-between;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
     margin-top: 0.25rem;
 }
@@ -362,13 +362,15 @@ input[type="range"]::-moz-range-thumb {
 
 .style-cards {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 0.5rem;
 }
 
 .style-card {
     display: block;
     cursor: pointer;
+    flex: 0 0 calc(50% - 0.25rem);
+    min-width: 0;
 }
 
 .style-card input {
@@ -383,6 +385,7 @@ input[type="range"]::-moz-range-thumb {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     transition: all var(--transition);
+    height: 100%;
 }
 
 .style-card:hover .style-card-inner {
@@ -400,7 +403,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .style-desc {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
 }
 
@@ -448,13 +451,13 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .modifier-name {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 500;
     color: var(--text-primary);
 }
 
 .modifier-desc {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
 }
 
@@ -469,7 +472,7 @@ input[type="range"]::-moz-range-thumb {
 .advanced-settings summary {
     padding: 0.75rem 1rem;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--text-secondary);
     list-style: none;
 }
@@ -494,7 +497,7 @@ input[type="range"]::-moz-range-thumb {
 /* Provider availability hint */
 
 .provider-hint {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--danger);
     padding: 0.5rem 0.75rem;
     background: rgba(192, 86, 74, 0.08);
@@ -524,7 +527,7 @@ option.provider-unavailable {
     display: flex;
     flex-direction: column;
     height: calc(100vh - 65px);
-    max-width: 720px;
+    max-width: 820px;
     margin: 0 auto;
     padding: 0 1.5rem;
 }
@@ -538,7 +541,7 @@ option.provider-unavailable {
 
 .session-timer {
     text-align: center;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
     margin-bottom: 0.5rem;
@@ -705,7 +708,7 @@ option.provider-unavailable {
     align-items: center;
     gap: 0.4rem;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
 }
 
@@ -726,7 +729,7 @@ option.provider-unavailable {
 }
 
 .speed-label {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
     white-space: nowrap;
     user-select: none;
@@ -739,7 +742,7 @@ option.provider-unavailable {
 }
 
 .btn-end {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     padding: 0.4rem 0.8rem;
     color: var(--text-muted);
     border-color: transparent;
@@ -828,7 +831,7 @@ option.provider-unavailable {
    ============================================ */
 
 .history-container {
-    max-width: 600px;
+    max-width: 720px;
     margin: 0 auto;
 }
 
@@ -875,7 +878,7 @@ option.provider-unavailable {
 }
 
 .session-meta {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
 }
 
@@ -903,13 +906,13 @@ option.provider-unavailable {
 }
 
 .transcript-message {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     line-height: 1.6;
 }
 
 .transcript-role {
     font-weight: 500;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.15rem;
