@@ -52,6 +52,7 @@ class LLMConfig:
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "llama3"
     api_key: str | None = None
+    openai_base_url: str | None = None
     context_strategy: str = "rolling"
     window_size: int = 10
     max_tokens: int = 300

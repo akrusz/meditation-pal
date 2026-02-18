@@ -36,6 +36,7 @@ class WebMeditationSession:
         verbosity: str = "low",
         custom_instructions: str = "",
         model: str | None = None,
+        provider: str | None = None,
         tts_enabled: bool = True,
     ):
         self.config = config
@@ -68,13 +69,22 @@ class WebMeditationSession:
             window_size=config.llm.window_size,
         )
 
+        # When the UI overrides the provider, don't pass config's api_key
+        # so the provider falls back to its own env var.
+        effective_provider = provider or config.llm.provider
+        if provider and provider != config.llm.provider:
+            api_key = None
+        else:
+            api_key = config.llm.api_key
+
         self.llm = create_llm_provider(
-            provider=config.llm.provider,
+            provider=effective_provider,
             model=model or config.llm.model,
             proxy_url=config.llm.proxy_url,
             ollama_url=config.llm.ollama_url,
-            api_key=config.llm.api_key,
+            api_key=api_key,
             max_tokens=config.llm.max_tokens,
+            base_url=config.llm.openai_base_url,
         )
 
         self.session.start_session()
@@ -204,6 +214,46 @@ def _register_routes(app: Flask) -> None:
         sessions = app.transcript_logger.list_sessions()
         return render_template("history.html", sessions=sessions)
 
+    @app.route("/api/providers")
+    def api_providers():
+        """Return provider availability based on env vars / proxy reachability."""
+        results = {}
+
+        # claude_proxy — check if CLIProxyAPI is reachable
+        proxy_url = app.meditation_config.llm.proxy_url or "http://127.0.0.1:8317"
+        try:
+            headers = {}
+            if app.meditation_config.llm.api_key:
+                headers["X-Api-Key"] = app.meditation_config.llm.api_key
+            resp = httpx.get(
+                f"{proxy_url.rstrip('/')}/v1/models",
+                headers=headers,
+                timeout=2.0,
+            )
+            results["claude_proxy"] = {
+                "available": resp.status_code == 200,
+                "hint": "Start CLIProxyAPI, then reload this page" if resp.status_code != 200 else "",
+            }
+        except Exception:
+            results["claude_proxy"] = {
+                "available": False,
+                "hint": "Start CLIProxyAPI, then reload this page",
+            }
+
+        # anthropic — needs ANTHROPIC_API_KEY
+        results["anthropic"] = {
+            "available": bool(os.environ.get("ANTHROPIC_API_KEY")),
+            "hint": "Set the ANTHROPIC_API_KEY environment variable",
+        }
+
+        # openrouter — needs OPENROUTER_API_KEY
+        results["openrouter"] = {
+            "available": bool(os.environ.get("OPENROUTER_API_KEY")),
+            "hint": "Set the OPENROUTER_API_KEY environment variable",
+        }
+
+        return jsonify(results)
+
     @app.route("/api/sessions")
     def api_sessions():
         sessions = app.transcript_logger.list_sessions()
@@ -266,6 +316,7 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
             verbosity=data.get("verbosity", "low"),
             custom_instructions=data.get("custom_instructions", ""),
             model=data.get("model"),
+            provider=data.get("provider"),
             tts_enabled=data.get("tts", True),
         )
 

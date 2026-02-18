@@ -128,16 +128,18 @@ def create_llm_provider(
     ollama_url: str | None = None,
     api_key: str | None = None,
     max_tokens: int = 300,
+    base_url: str | None = None,
 ) -> BaseLLMProvider:
     """Factory function to create LLM provider.
 
     Args:
-        provider: Provider name ("claude_proxy", "anthropic", "openai", "ollama")
+        provider: Provider name ("claude_proxy", "anthropic", "openai", "ollama", "openrouter")
         model: Model name (uses provider default if not specified)
         proxy_url: CLIProxyAPI URL (for claude_proxy)
         ollama_url: Ollama server URL (for ollama)
-        api_key: API key (for anthropic/openai)
+        api_key: API key (for anthropic/openai/openrouter)
         max_tokens: Maximum response tokens
+        base_url: Custom base URL for OpenAI-compatible APIs
 
     Returns:
         LLM provider instance
@@ -164,6 +166,15 @@ def create_llm_provider(
             api_key=api_key,
             model=model or "gpt-4o",
             max_tokens=max_tokens,
+            base_url=base_url,
+        )
+    elif provider == "openrouter":
+        return OpenAIProvider(
+            api_key=api_key,
+            model=model or "deepseek/deepseek-v3.2-20251201",
+            max_tokens=max_tokens,
+            base_url="https://openrouter.ai/api/v1",
+            env_key="OPENROUTER_API_KEY",
         )
     elif provider == "ollama":
         return OllamaProvider(

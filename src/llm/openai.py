@@ -13,20 +13,25 @@ class OpenAIProvider(BaseLLMProvider):
         api_key: str | None = None,
         model: str = "gpt-4o",
         max_tokens: int = 300,
+        base_url: str | None = None,
+        env_key: str = "OPENAI_API_KEY",
     ):
         """Initialize OpenAI provider.
 
         Args:
-            api_key: OpenAI API key (defaults to OPENAI_API_KEY env var)
+            api_key: API key (defaults to env_key env var)
             model: Model to use
             max_tokens: Maximum tokens in response
+            base_url: Optional base URL for OpenAI-compatible APIs (e.g. OpenRouter)
+            env_key: Environment variable name for the API key
         """
         super().__init__(model=model, max_tokens=max_tokens)
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        self.api_key = api_key or os.environ.get(env_key)
+        self.base_url = base_url
 
         if not self.api_key:
             raise ValueError(
-                "OpenAI API key required. Set OPENAI_API_KEY environment variable "
+                f"API key required. Set {env_key} environment variable "
                 "or pass api_key parameter."
             )
 
@@ -42,7 +47,10 @@ class OpenAIProvider(BaseLLMProvider):
                     "openai package not installed. Run: pip install openai"
                 )
 
-            self._client = openai.AsyncOpenAI(api_key=self.api_key)
+            self._client = openai.AsyncOpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url,
+            )
 
         return self._client
 

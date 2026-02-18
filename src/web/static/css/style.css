@@ -491,6 +491,22 @@ input[type="range"]::-moz-range-thumb {
     padding: 0 1rem 1rem;
 }
 
+/* Provider availability hint */
+
+.provider-hint {
+    font-size: 0.8rem;
+    color: var(--danger);
+    padding: 0.5rem 0.75rem;
+    background: rgba(192, 86, 74, 0.08);
+    border: 1px solid rgba(192, 86, 74, 0.2);
+    border-radius: var(--radius-sm);
+    margin-top: -0.75rem;
+}
+
+option.provider-unavailable {
+    color: var(--text-muted);
+}
+
 /* Begin button */
 
 .btn-begin {

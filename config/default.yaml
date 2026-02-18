@@ -33,7 +33,7 @@ tts:
   # similarity_boost: 0.75
 
 llm:
-  provider: claude_proxy  # claude_proxy, anthropic, openai, ollama
+  provider: claude_proxy  # claude_proxy, anthropic, openai, ollama, openrouter
   model: claude-sonnet-4-5-20250929
 
   # For claude_proxy (CLIProxyAPI)
@@ -41,7 +41,16 @@ llm:
   api_key: meditation-pal
 
   # For direct Anthropic API
+  # provider: anthropic
   # api_key: ${ANTHROPIC_API_KEY}
+
+  # For OpenRouter (DeepSeek, Kimi, etc.)
+  # provider: openrouter
+  # model: deepseek/deepseek-v3.2-20251201
+  # (set OPENROUTER_API_KEY env var)
+
+  # For OpenAI (or any OpenAI-compatible endpoint)
+  # openai_base_url: https://api.example.com/v1
 
   # For Ollama
   ollama_url: http://localhost:11434
