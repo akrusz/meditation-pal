@@ -1,6 +1,8 @@
 # meditation pal
 
-a meditation facilitator that listens and responds. runs in your browser, uses an LLM to guide you, whisper for speech recognition, and your mic for voice input
+voice is an overpowered and underrated meditation/inner work tool.
+
+this is a meditation facilitator that listens and responds to your voice. runs in your browser, uses an LLM to guide you, whisper for speech recognition, and your mic for voice input
 
 works on macos and linux. bring your own LLM — claude subscription via CLIProxyAPI, anthropic API key, openrouter for cheap non-claude models (deepseek, kimi), or local ollama
 
@@ -21,7 +23,7 @@ you need:
 then:
 
 ```bash
-git clone <this repo>
+git clone https://github.com/akrusz/meditation-pal.git
 cd meditation-pal
 ./install.sh
 ./start.sh
