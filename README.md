@@ -94,11 +94,11 @@ then select "OpenRouter" in the web UI, or set `llm.provider: openrouter` in con
 
 **openai** -- set `OPENAI_API_KEY` and `llm.provider: openai`. supports custom base URLs via `llm.openai_base_url` for any OpenAI-compatible endpoint
 
-**ollama** -- fully local, no API key needed
+**ollama** -- fully local, no API key needed. install from [ollama.ai](https://ollama.ai), then pull a model:
 ```bash
 ollama pull llama3
 ```
-then set `llm.provider: ollama` in your config
+select "Ollama (Local)" in the web UI — the model dropdown auto-populates with your pulled models. or set `llm.provider: ollama` in config
 
 ## cli mode
 

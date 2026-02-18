@@ -99,6 +99,7 @@
                     <option value="claude_proxy" selected>Anthropic (Subscription)</option>
                     <option value="anthropic">Anthropic (API Key)</option>
                     <option value="openrouter">OpenRouter</option>
+                    <option value="ollama">Ollama (Local)</option>
                 </select>
             </div>
             <div class="form-group form-group-half">
@@ -171,7 +172,7 @@
 
 {% block scripts %}
 <script>
-    // Provider → model mapping
+    // Provider → model mapping (ollama populated dynamically)
     const providerModels = {
         claude_proxy: [
             { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5' },
@@ -191,6 +192,7 @@
             { value: 'moonshotai/kimi-k2.5-0127', label: 'Kimi K2.5' },
             { value: 'moonshotai/kimi-k2-thinking-20251106', label: 'Kimi K2 Thinking' },
         ],
+        ollama: [],  // populated from /api/providers
     };
 
     const providerSelect = document.getElementById('provider');
@@ -236,7 +238,15 @@
         .then(r => r.json())
         .then(data => {
             providerStatus = data;
+            // Populate ollama models from server response
+            if (data.ollama && data.ollama.models && data.ollama.models.length) {
+                providerModels.ollama = data.ollama.models.map(name => ({
+                    value: name,
+                    label: name.replace(/:latest$/, ''),
+                }));
+            }
             applyProviderAvailability();
+            updateModelOptions();  // refresh in case ollama is selected
         })
         .catch(() => {});  // silently degrade
 

@@ -252,6 +252,24 @@ def _register_routes(app: Flask) -> None:
             "hint": "Set the OPENROUTER_API_KEY environment variable",
         }
 
+        # ollama — check if server is running and list pulled models
+        ollama_url = app.meditation_config.llm.ollama_url or "http://localhost:11434"
+        try:
+            resp = httpx.get(f"{ollama_url.rstrip('/')}/api/tags", timeout=2.0)
+            resp.raise_for_status()
+            models = [m["name"] for m in resp.json().get("models", [])]
+            results["ollama"] = {
+                "available": len(models) > 0,
+                "models": models,
+                "hint": "No models pulled. Run: ollama pull llama3" if not models else "",
+            }
+        except Exception:
+            results["ollama"] = {
+                "available": False,
+                "models": [],
+                "hint": "Ollama is not running. Install from ollama.ai and start it",
+            }
+
         return jsonify(results)
 
     @app.route("/api/sessions")
