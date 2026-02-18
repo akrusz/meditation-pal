@@ -127,6 +127,15 @@ Encourage a hands-off, receptive quality. Less doing, more allowing.
 Effort is the main obstacle. The less they try, the more opens up.
 If they're striving or concentrating hard, gently invite softening.
 """,
+    "emotional_warmth": """
+Welcome and explore emotions as a rich part of the practice, not just physical sensation.
+- "What's the feeling tone right now? Is there an emotion present?"
+- "Can you feel where that emotion lives in your body?"
+- "What happens when you let yourself fully feel that?"
+Emotions are doorways. Happiness, gratitude, love, tenderness, even sadness —
+they all have a somatic signature. Help the meditator notice the feeling behind the feeling.
+Don't rush past emotion toward 'pure sensation.' The emotion itself is the practice.
+""",
 }
 
 VERBOSITY_ADDITIONS = {

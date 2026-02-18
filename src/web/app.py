@@ -132,7 +132,12 @@ def create_app(config: Config | None = None) -> tuple[Flask, SocketIO]:
     )
     app.config["SECRET_KEY"] = "meditation-pal-local"
 
-    socketio = SocketIO(app, async_mode="threading", cors_allowed_origins="*")
+    socketio = SocketIO(
+        app,
+        async_mode="threading",
+        cors_allowed_origins="*",
+        max_http_buffer_size=10 * 1024 * 1024,  # 10MB — ~2.5min of 16kHz float32 audio
+    )
 
     app.meditation_config = config
     app.web_sessions = {}      # session_id → WebMeditationSession
