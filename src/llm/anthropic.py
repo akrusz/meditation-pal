@@ -70,11 +70,21 @@ class AnthropicProvider(BaseLLMProvider):
                     "content": msg.content,
                 })
 
+        # Use cache_control on the system prompt so repeated calls within a
+        # session get ~90% off input tokens (huge saving for Pro plan users).
+        system_param = ""
+        if system:
+            system_param = [{
+                "type": "text",
+                "text": system,
+                "cache_control": {"type": "ephemeral"},
+            }]
+
         # Make API call
         response = await client.messages.create(
             model=self.model,
             max_tokens=max_tokens or self.max_tokens,
-            system=system or "",
+            system=system_param,
             messages=anthropic_messages,
         )
 

@@ -4,15 +4,13 @@ This is the most nuanced component - distinguishing between:
 - Thinking pause (2-5 sec): Wait silently
 - Contemplative dropping-in (5-30 sec): Wait silently
 - Natural end of sharing (3-5 sec + falling intonation): Respond
-- Explicit cue ("I'm going quiet"): Enter extended listening mode
+- LLM-detected silence intent ([HOLD] signal): Enter extended listening mode
 - Very long silence (60+ sec): Gentle check-in (optional)
 """
 
-import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Callable
 
 
 class ConversationState(Enum):
@@ -48,23 +46,6 @@ class PacingConfig:
     # How long before offering gentle check-in (seconds)
     extended_silence_sec: int = 60
 
-    # Phrases that trigger silence mode
-    silence_mode_phrases: list[str] = field(default_factory=lambda: [
-        "i'm going quiet",
-        "just listen",
-        "going inward",
-        "i'll be quiet",
-        "going silent",
-    ])
-
-    # Phrases that resume normal turn-taking
-    resume_phrases: list[str] = field(default_factory=lambda: [
-        "i'm back",
-        "okay",
-        "back now",
-        "ready",
-    ])
-
 
 class PacingController:
     """Controls turn-taking dynamics in meditation facilitation.
@@ -80,16 +61,6 @@ class PacingController:
         self._last_speech_end: float = 0
         self._last_response_time: float = 0
         self._silence_mode_start: float | None = None
-
-        # Compile patterns for phrase detection
-        self._silence_patterns = [
-            re.compile(rf"\b{re.escape(p)}\b", re.IGNORECASE)
-            for p in self.config.silence_mode_phrases
-        ]
-        self._resume_patterns = [
-            re.compile(rf"\b{re.escape(p)}\b", re.IGNORECASE)
-            for p in self.config.resume_phrases
-        ]
 
     @property
     def state(self) -> ConversationState:
@@ -111,11 +82,6 @@ class PacingController:
         """Called when meditator starts speaking."""
         self._state = ConversationState.LISTENING
 
-        # If we were in silence mode and they speak, check for resume
-        if self._silence_mode_start is not None:
-            # Don't exit silence mode yet - wait for the transcription
-            pass
-
     def on_speech_end(self) -> None:
         """Called when meditator stops speaking."""
         self._last_speech_end = time.time()
@@ -124,29 +90,19 @@ class PacingController:
     def on_transcription(self, text: str) -> TurnDecision:
         """Process transcribed text and decide on turn-taking.
 
+        If in silence mode, any speech auto-exits it. The LLM decides
+        whether to *enter* silence mode via the [HOLD] signal — that
+        is handled externally after the LLM response is received.
+
         Args:
             text: Transcribed speech
 
         Returns:
             TurnDecision indicating what to do
         """
-        text_lower = text.lower().strip()
-
-        # Check for silence mode triggers
-        if self._check_silence_trigger(text_lower):
-            self._enter_silence_mode()
-            return TurnDecision.HOLD
-
-        # Check for resume triggers (if in silence mode)
         if self._silence_mode_start is not None:
-            if self._check_resume_trigger(text_lower):
-                self._exit_silence_mode()
-                return TurnDecision.RESPOND
+            self.exit_silence_mode()
 
-            # Still in silence mode
-            return TurnDecision.HOLD
-
-        # Normal mode - ready to respond after delay
         return TurnDecision.RESPOND
 
     def should_respond(self) -> TurnDecision:
@@ -194,21 +150,13 @@ class PacingController:
         self._last_response_time = time.time()
         self._last_speech_end = 0  # Reset for next turn
 
-    def _check_silence_trigger(self, text: str) -> bool:
-        """Check if text contains silence mode trigger."""
-        return any(p.search(text) for p in self._silence_patterns)
-
-    def _check_resume_trigger(self, text: str) -> bool:
-        """Check if text contains resume trigger."""
-        return any(p.search(text) for p in self._resume_patterns)
-
-    def _enter_silence_mode(self) -> None:
-        """Enter extended silence mode."""
+    def enter_silence_mode(self) -> None:
+        """Enter extended silence mode (called after LLM returns [HOLD])."""
         self._state = ConversationState.SILENT_HOLD
         self._silence_mode_start = time.time()
 
-    def _exit_silence_mode(self) -> None:
-        """Exit silence mode."""
+    def exit_silence_mode(self) -> None:
+        """Exit silence mode (called when meditator speaks again)."""
         self._state = ConversationState.LISTENING
         self._silence_mode_start = None
 

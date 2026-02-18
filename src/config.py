@@ -1,7 +1,7 @@
 """Configuration loading and management."""
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -62,15 +62,6 @@ class PacingConfig:
     response_delay_ms: int = 2000
     min_speech_duration_ms: int = 500
     extended_silence_sec: int = 60
-    silence_mode_phrases: list[str] = field(default_factory=lambda: [
-        "i'm going quiet",
-        "just listen",
-        "going inward",
-    ])
-    resume_phrases: list[str] = field(default_factory=lambda: [
-        "i'm back",
-        "okay",
-    ])
 
 
 @dataclass

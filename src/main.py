@@ -17,7 +17,7 @@ from .tts import create_tts
 from .llm.ollama import create_llm_provider
 from .llm.base import Message
 from .facilitation.pacing import PacingController, PacingConfig as PacingCtrlConfig, TurnDecision
-from .facilitation.prompts import PromptBuilder, PromptConfig
+from .facilitation.prompts import PromptBuilder, PromptConfig, parse_hold_signal
 from .facilitation.session import SessionManager
 from .logging.transcript import TranscriptLogger
 
@@ -101,8 +101,6 @@ class MeditationFacilitator:
             response_delay_ms=self.config.pacing.response_delay_ms,
             min_speech_duration_ms=self.config.pacing.min_speech_duration_ms,
             extended_silence_sec=self.config.pacing.extended_silence_sec,
-            silence_mode_phrases=self.config.pacing.silence_mode_phrases,
-            resume_phrases=self.config.pacing.resume_phrases,
         )
         self.pacing = PacingController(pacing_config)
 
@@ -227,20 +225,9 @@ class MeditationFacilitator:
                         print(f"\nMeditator: {transcription.text}")
                         self.session.add_user_message(transcription.text)
 
-                        # Get turn decision
-                        decision = self.pacing.on_transcription(transcription.text)
-
-                        if decision == TurnDecision.RESPOND:
-                            await self._generate_response()
-                        elif decision == TurnDecision.HOLD:
-                            # Acknowledge silence mode
-                            ack = self.prompts.get_silence_acknowledgment()
-                            print(f"\nFacilitator: {ack}")
-                            await self.tts.speak(ack)
-                            self.audio_input.clear_buffer()
-                            self.vad.reset()
-                            self._audio_buffer = []
-                            self.session.add_assistant_message(ack)
+                        # Any speech auto-exits silence mode; always respond
+                        self.pacing.on_transcription(transcription.text)
+                        await self._generate_response()
 
             prev_vad_state = vad_result.state
             await asyncio.sleep(0.01)
@@ -269,14 +256,20 @@ class MeditationFacilitator:
             print(f"\n(LLM error: {e})")
             response = "Mmm. What do you notice now?"
 
-        if response:
-            print(f"\nFacilitator: {response}")
-            self.session.add_assistant_message(response)
-            await self.tts.speak(response)
+        # Check for [HOLD] signal — LLM wants us to enter silence mode
+        is_hold, clean_response = parse_hold_signal(response)
+
+        if clean_response:
+            print(f"\nFacilitator: {clean_response}")
+            self.session.add_assistant_message(clean_response)
+            await self.tts.speak(clean_response)
             # Clear mic buffer and reset VAD so we don't process TTS audio as speech
             self.audio_input.clear_buffer()
             self.vad.reset()
             self._audio_buffer = []
+
+        if is_hold:
+            self.pacing.enter_silence_mode()
 
         self.pacing.on_response_end()
 

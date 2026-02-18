@@ -16,7 +16,7 @@ from flask_socketio import SocketIO, emit
 from ..config import load_config, Config
 from ..llm.ollama import create_llm_provider
 from ..llm.base import Message
-from ..facilitation.prompts import PromptBuilder, PromptConfig, FacilitationStyle
+from ..facilitation.prompts import PromptBuilder, PromptConfig, FacilitationStyle, parse_hold_signal
 from ..facilitation.session import SessionManager
 from ..logging.transcript import TranscriptLogger
 from ..stt.whisper import WhisperSTT
@@ -61,6 +61,8 @@ class WebMeditationSession:
         )
         self.prompts = PromptBuilder(prompt_config)
 
+        self.in_silence_mode = False
+
         self.session = SessionManager(
             context_strategy=config.llm.context_strategy,
             window_size=config.llm.window_size,
@@ -88,8 +90,13 @@ class WebMeditationSession:
             )
         return base
 
-    async def generate_response(self, user_text: str) -> str:
-        """Generate a facilitator response to user input."""
+    async def generate_response(self, user_text: str) -> tuple[str, bool]:
+        """Generate a facilitator response to user input.
+
+        Returns:
+            (response_text, is_hold) — is_hold is True when the LLM
+            signalled silence mode via the [HOLD] prefix.
+        """
         self.session.add_user_message(user_text)
 
         messages = self.session.get_context_messages()
@@ -105,8 +112,13 @@ class WebMeditationSession:
             print(f"  [LLM ERROR] {type(e).__name__}: {e}", flush=True)
             response = "Mmm. What do you notice now?"
 
-        self.session.add_assistant_message(response)
-        return response
+        is_hold, clean_response = parse_hold_signal(response)
+
+        if is_hold:
+            self.in_silence_mode = True
+
+        self.session.add_assistant_message(clean_response)
+        return clean_response, is_hold
 
     def get_opener(self) -> str:
         """Get a session opening message."""
@@ -275,14 +287,22 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
         if not text:
             return
 
+        # Any speech auto-exits silence mode
+        was_silent = web_session.in_silence_mode
+        if was_silent:
+            web_session.in_silence_mode = False
+            emit("silence_mode", {"active": False})
+
         emit("facilitator_typing", {"typing": True})
 
         try:
-            response = asyncio.run(web_session.generate_response(text))
+            response, is_hold = asyncio.run(web_session.generate_response(text))
             audio = None
             if web_session.tts_enabled:
                 audio = app.server_tts.speak_to_bytes(response)
             emit("facilitator_message", {"text": response, "type": "response", "audio": audio})
+            if is_hold:
+                emit("silence_mode", {"active": True})
         except Exception:
             emit("facilitator_message", {
                 "text": "Mmm. What do you notice now?",
@@ -398,7 +418,7 @@ def run_web(
         proxy_url = config.llm.proxy_url or "http://127.0.0.1:8317"
         headers = {}
         if config.llm.api_key:
-            headers["Authorization"] = f"Bearer {config.llm.api_key}"
+            headers["X-Api-Key"] = config.llm.api_key
         try:
             resp = httpx.get(
                 f"{proxy_url.rstrip('/')}/v1/models",

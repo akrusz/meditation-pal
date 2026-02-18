@@ -218,6 +218,14 @@
         endedOverlay.style.display = 'flex';
     });
 
+    socket.on('silence_mode', function (data) {
+        if (data.active) {
+            setStatus('Holding space... speak when ready');
+        } else {
+            setStatus('Listening... speak naturally');
+        }
+    });
+
     socket.on('error', function (data) {
         console.error('Server error:', data.message);
     });

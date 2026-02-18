@@ -52,17 +52,6 @@ pacing:
   min_speech_duration_ms: 500   # ignore very short sounds
   extended_silence_sec: 60      # when to offer gentle check-in
 
-  silence_mode_phrases:
-    - "i'm going quiet"
-    - "just listen"
-    - "going inward"
-    - "i'll be quiet"
-
-  resume_phrases:
-    - "i'm back"
-    - "okay"
-    - "back now"
-
 facilitation:
   directiveness: 3          # 0-10 scale
   pleasant_emphasis: true   # Orient toward pleasant sensations (legacy; web UI uses modifiers)
