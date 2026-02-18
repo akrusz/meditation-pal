@@ -20,7 +20,7 @@ from ..facilitation.prompts import PromptBuilder, PromptConfig, FacilitationStyl
 from ..facilitation.session import SessionManager
 from ..logging.transcript import TranscriptLogger
 from ..stt.whisper import WhisperSTT
-from ..tts.macos import MacOSTTS
+from ..tts import create_tts
 
 
 class WebMeditationSession:
@@ -160,11 +160,18 @@ def create_app(config: Config | None = None) -> tuple[Flask, SocketIO]:
         include_timestamps=config.session.include_timestamps,
     )
 
-    # Initialize server-side TTS for high-quality audio
-    app.server_tts = MacOSTTS(
-        voice=config.tts.voice,
-        rate=config.tts.rate,
-    )
+    # Initialize server-side TTS for high-quality audio.
+    # On platforms without a server-side engine (e.g. Linux without piper),
+    # create_tts may raise — fall back to None and let the browser handle TTS.
+    try:
+        app.server_tts = create_tts(
+            engine=config.tts.engine,
+            voice=config.tts.voice,
+            rate=config.tts.rate,
+        )
+    except Exception as e:
+        print(f"  [TTS] Server-side TTS unavailable ({e}), using browser speechSynthesis", flush=True)
+        app.server_tts = None
 
     # Initialize Whisper STT and pre-load model for fast first transcription
     app.whisper_stt = WhisperSTT(
@@ -271,7 +278,7 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
 
         opener = web_session.get_opener()
         audio = None
-        if web_session.tts_enabled:
+        if web_session.tts_enabled and app.server_tts and hasattr(app.server_tts, 'speak_to_bytes'):
             audio = app.server_tts.speak_to_bytes(opener)
         emit("facilitator_message", {"text": opener, "type": "opener", "audio": audio})
 
@@ -298,7 +305,7 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
         try:
             response, is_hold = asyncio.run(web_session.generate_response(text))
             audio = None
-            if web_session.tts_enabled:
+            if web_session.tts_enabled and app.server_tts and hasattr(app.server_tts, 'speak_to_bytes'):
                 audio = app.server_tts.speak_to_bytes(response)
             emit("facilitator_message", {"text": response, "type": "response", "audio": audio})
             if is_hold:
@@ -332,7 +339,7 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
             saved_id = session_data.get("session_id")
 
         audio = None
-        if web_session.tts_enabled:
+        if web_session.tts_enabled and app.server_tts and hasattr(app.server_tts, 'speak_to_bytes'):
             audio = app.server_tts.speak_to_bytes(closer)
         emit("session_ended", {
             "closer": closer,
@@ -343,7 +350,7 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
     @socketio.on("set_tts_rate")
     def handle_set_tts_rate(data):
         rate = data.get("rate")
-        if rate and isinstance(rate, (int, float)):
+        if rate and isinstance(rate, (int, float)) and app.server_tts:
             rate = max(80, min(180, int(rate)))
             app.server_tts.set_rate(rate)
 

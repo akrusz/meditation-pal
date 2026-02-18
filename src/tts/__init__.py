@@ -21,7 +21,7 @@ def create_tts(
     voice: str | None = None,
     rate: int = 180,
     **kwargs,
-) -> "MacOSTTS | PiperTTS | ParakeetTTS | ElevenLabsTTS":
+) -> "MacOSTTS | PiperTTS | ParakeetTTS | ElevenLabsTTS | None":
     """Factory function to create TTS engine.
 
     Args:
@@ -30,12 +30,13 @@ def create_tts(
             - "piper": Piper TTS (fast local neural TTS)
             - "parakeet": NVIDIA Parakeet (high quality neural TTS)
             - "elevenlabs": ElevenLabs API (highest quality, requires API key)
+            - "browser": no server-side TTS; browser speechSynthesis only
         voice: Voice name/model (engine-specific)
         rate: Speaking rate in WPM (mainly for macos)
         **kwargs: Additional engine-specific arguments
 
     Returns:
-        TTS engine instance
+        TTS engine instance, or None for browser-only mode
     """
     if engine == "macos":
         return MacOSTTS(
@@ -67,8 +68,13 @@ def create_tts(
             similarity_boost=kwargs.get("similarity_boost", 0.75),
         )
 
+    elif engine == "browser":
+        # No server-side TTS — browser speechSynthesis handles everything.
+        # Return None so app.py falls back gracefully.
+        return None
+
     else:
         raise ValueError(
             f"Unknown TTS engine: {engine}. "
-            f"Available: macos, piper, parakeet, elevenlabs"
+            f"Available: macos, piper, parakeet, elevenlabs, browser"
         )

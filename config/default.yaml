@@ -12,7 +12,12 @@ stt:
   device: auto  # auto, cpu, cuda, mps
 
 tts:
-  engine: macos  # macos, piper, parakeet, elevenlabs
+  # Engine options:
+  #   macos   — macOS native 'say' command (macOS only)
+  #   piper   — Piper neural TTS (pip install piper-tts; works on Linux/macOS)
+  #   browser — no server-side audio; falls back to browser speechSynthesis
+  #   parakeet, elevenlabs — see below
+  engine: macos
   voice: "Zoe (Premium)"
   rate: 160  # words per minute
 
