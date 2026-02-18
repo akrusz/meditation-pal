@@ -1,210 +1,122 @@
-# Meditation Pal
+# meditation pal
 
-An AI meditation facilitator that supports live somatic exploration practice. You describe your moment-to-moment sensory experience and the AI asks gentle questions, helping you explore sensation, emotion, and absorption at your own pace.
+a meditation facilitator that listens and responds. runs in your browser, uses an LLM to guide you, whisper for speech recognition, and your mic for voice input
 
-Two interfaces: a **web UI** (recommended for getting started) and a **voice CLI** for hands-free sessions.
+works on macos and linux. you just need a claude subscription (via CLIProxyAPI) or a local ollama server
 
-## Quick Start (Web Interface)
+## what it does
 
-```bash
-uv venv
-uv pip install -r requirements.txt
-uv run python -m src.web
-```
+you start a session, optionally set an intention, pick a facilitation style, and start talking. the facilitator listens, transcribes what you say with whisper, sends it to an LLM, and speaks the response back. it can hold silence when appropriate and gently check in if you've been quiet for a while
 
-Open [http://localhost:5555](http://localhost:5555) in your browser. Set an intention (or don't), pick a facilitation style, and begin.
+facilitation styles range from open-ended ("what do you notice?") to somatic-focused to fully adaptive. there's a directiveness slider so you can dial in how much guidance you want
 
-You type what you're experiencing. The facilitator responds. That's it.
+## getting started
 
-Optional: click the microphone button to use voice dictation (uses server-side Whisper transcription — works in all browsers). Toggle "Voice" to have responses read aloud.
+you need:
+- python 3.10+
+- [uv](https://docs.astral.sh/uv/) for package management
+- a mic
+- either [CLIProxyAPI](https://github.com/CLIProxyAPI/CLIProxyAPI) (uses your existing claude subscription) or [ollama](https://ollama.ai) for the LLM
 
-## Quick Start (Voice CLI)
-
-The CLI mode uses your computer's microphone and speaker for a fully hands-free session. Requires audio dependencies (pyaudio, sounddevice) and a working mic.
+then:
 
 ```bash
-pip install -r requirements.txt
-python -m src
-```
-
-Speak naturally. The app listens, transcribes with Whisper, and the facilitator responds via text-to-speech. Press Ctrl+C to end the session.
-
-## Setup
-
-### Requirements
-
-- Python 3.10+
-- An LLM provider (see below)
-
-### Install
-
-```bash
-git clone <this-repo>
+git clone <this repo>
 cd meditation-pal
-pip install -r requirements.txt
+./install.sh
+./start.sh
 ```
 
-For Apple Silicon Macs, optionally install the optimized Whisper:
-```bash
-pip install mlx-whisper
-```
+the install script walks you through everything -- system deps, LLM provider choice, whisper model download. it writes your config to `config/default.yaml`
 
-### LLM Provider
+`start.sh` handles the rest: starts CLIProxyAPI if needed, launches the web server on port 5555, cleans up on ctrl-c
 
-You need one of these configured for the AI facilitator to work:
+open [localhost:5555](http://localhost:5555) and you're in
 
-**Claude via CLI proxy** (default — if you're running [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or similar):
+## how it works
+
+- **audio capture** -- Web Audio API in the browser, shipped as raw PCM to the server
+- **speech recognition** -- openai whisper running locally (the `small` model, ~500mb)
+- **LLM** -- claude via CLIProxyAPI, or ollama, or direct anthropic/openai API
+- **TTS** -- macos `say` command on mac, browser speechSynthesis on linux. piper-tts is an option if you want better quality server-side audio on linux
+
+## facilitation styles
+
+pick one in the web UI before starting:
+
+| style | vibe |
+|---|---|
+| **pleasant play** | playful exploration of pleasant sensations. understands jhana factors. encourages letting go and enjoying what's here |
+| **adaptive** | flows with whatever arises, no fixed framework |
+| **non-directive** | pure presence. reflects and asks "what's here now?" |
+| **somatic** | body-focused -- texture, temperature, movement, density |
+| **open** | minimal facilitation. holds space. long silences welcome |
+
+## configuration
+
+everything lives in `config/default.yaml`. the install script writes this for you but here's what you can tweak:
+
 ```yaml
-# config/default.yaml
-llm:
-  provider: claude_proxy
-  proxy_url: http://127.0.0.1:8317
-```
+tts:
+  engine: macos      # macos, piper, browser, elevenlabs, parakeet
+  voice: "Zoe (Premium)"
+  rate: 160
 
-**Anthropic API directly:**
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-```yaml
 llm:
-  provider: anthropic
-  api_key: ${ANTHROPIC_API_KEY}
+  provider: claude_proxy   # claude_proxy, ollama, anthropic, openai
   model: claude-sonnet-4-5-20250929
+
+facilitation:
+  directiveness: 3   # 0-10 scale
+  verbosity: low     # low, medium, high
+
+stt:
+  model: small       # tiny, base, small, medium, large
 ```
 
-**OpenAI:**
-```bash
-export OPENAI_API_KEY=sk-...
-```
-```yaml
-llm:
-  provider: openai
-  api_key: ${OPENAI_API_KEY}
-  model: gpt-4o
-```
+### LLM providers
 
-**Ollama (fully local/offline):**
+**CLIProxyAPI** (default) -- uses your claude subscription. install via homebrew, the install script handles it
+
+**ollama** -- fully local, no API key needed
 ```bash
 ollama pull llama3
 ```
-```yaml
-llm:
-  provider: ollama
-  ollama_url: http://localhost:11434
-  ollama_model: llama3
-```
+then set `llm.provider: ollama` in your config
 
-## Configuration
+**anthropic / openai** -- set the API key as an env var and point the config at it
 
-All settings live in `config/default.yaml`. You can also pass a custom config:
+## cli mode
+
+there's also a CLI version for hands-free sessions:
 
 ```bash
-python -m src --config path/to/my-config.yaml
-python -m src --web --config path/to/my-config.yaml
+uv run python -m src
 ```
 
-### Facilitation Styles
+uses your mic directly via sounddevice and speaks responses through the system TTS. press ctrl-c to end
 
-Choose in the web UI setup page, or set in config:
+## tips
 
-| Style | What it does |
-|---|---|
-| **Pleasant Play** | Playful exploration of pleasant sensations and natural absorption (jhana). Understands piti, sukha, and the jhana factors. Encourages letting go and enjoying what's here. |
-| **Adaptive** | Flows with whatever arises — no fixed framework. Companion, not director. |
-| **Non-directive** | Pure presence. Only reflects and asks "What's here now?" |
-| **Somatic** | Body-focused exploration of texture, temperature, movement, density. |
-| **Open** | Minimal facilitation. Mostly holds space. Long silences welcome. |
+- the theme toggle in the top right follows your system preference by default, or just click it
+- if speech recognition feels slow, try `stt.model: base` (faster, less accurate)
+- on linux without piper, TTS falls back to browser speechSynthesis automatically
+- sessions auto-save to `sessions/` as JSON and plain text
+- say "going quiet" during a session to enter silence mode. say anything to come back
+- set an intention loosely or not at all. the facilitator holds it lightly
 
-### Key Config Options
-
-```yaml
-facilitation:
-  directiveness: 3          # 0 (pure following) to 10 (active guidance)
-  pleasant_emphasis: true   # orient toward pleasant sensations
-  verbosity: low            # low, medium, high
-
-llm:
-  context:
-    strategy: rolling       # rolling (last N exchanges) or full (entire session)
-    window_size: 10         # how many exchanges to keep in context
-    max_tokens: 300         # max length of each facilitator response
-```
-
-### Text-to-Speech (CLI mode)
-
-The CLI uses TTS for spoken responses. Options in `config/default.yaml`:
-
-```yaml
-tts:
-  engine: macos             # default on Mac — uses system 'say' command
-  voice: Samantha
-  rate: 180
-```
-
-Other engines (install separately):
-
-| Engine | Install | Notes |
-|---|---|---|
-| `macos` | built-in | System voices, zero latency, decent quality |
-| `piper` | `pip install piper-tts` | Fast local neural TTS, good quality |
-| `parakeet` | `pip install transformers torch` | NVIDIA neural TTS, high quality |
-| `elevenlabs` | `pip install elevenlabs` | Cloud API, best quality, requires API key |
-
-For ElevenLabs:
-```bash
-export ELEVENLABS_API_KEY=your-key
-```
-```yaml
-tts:
-  engine: elevenlabs
-  api_key: ${ELEVENLABS_API_KEY}
-  voice_id: 21m00Tcm4TlvDq8ikWAM   # Rachel — calm, warm
-```
-
-### Speech-to-Text (CLI mode)
-
-Uses OpenAI Whisper locally. Model sizes trade speed for accuracy:
-
-```yaml
-stt:
-  model: small    # tiny (fastest), base, small (good balance), medium, large (most accurate)
-  language: en
-  device: auto    # auto, cpu, cuda, mps
-```
-
-## Usage Tips
-
-- **Set an intention loosely.** "Explore pleasant sensations" or "just be present" — the facilitator holds it lightly.
-- **Describe raw sensation.** "Warmth in my chest" works better than "I feel happy." The facilitator will help you go deeper.
-- **It's okay to drift.** There's no wrong direction. If you wander, the facilitator follows.
-- **Say "going quiet" or "just listen"** to enter silence mode. The facilitator will hold space without interrupting. Say "I'm back" to resume.
-- **You can release all expectations.** The facilitator supports whatever happens, including nothing.
-
-## Session History
-
-Sessions auto-save to the `sessions/` folder as both JSON and readable text files.
-
-**Web:** Visit [http://localhost:5555/history](http://localhost:5555/history) to browse past sessions.
-
-**CLI:**
-```bash
-python -m src --list-sessions
-python -m src --view-session 2026-02-09-143022
-```
-
-## Project Structure
+## project layout
 
 ```
-meditation-pal/
-  config/default.yaml       # all settings
-  src/
-    main.py                 # CLI entry point
-    web/                    # web interface (Flask + SocketIO)
-    audio/                  # mic input, voice activity detection
-    stt/                    # speech-to-text (Whisper)
-    tts/                    # text-to-speech (macOS, Piper, Parakeet, ElevenLabs)
-    llm/                    # LLM providers (Claude, OpenAI, Ollama)
-    facilitation/           # prompts, session state, pacing/turn-taking
-    logging/                # session transcript saving
-  sessions/                 # saved session transcripts
+src/
+  web/          flask + socketio app, templates, JS
+  tts/          text-to-speech engines (macos, piper, parakeet, elevenlabs)
+  stt/          whisper speech-to-text
+  llm/          LLM provider abstraction
+  facilitation/ prompt building, session management
+  audio/        CLI audio capture + VAD
+config/         default.yaml
+sessions/       saved transcripts
+install.sh      first-time setup
+start.sh        launch script
 ```

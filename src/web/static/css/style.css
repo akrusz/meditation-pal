@@ -1,8 +1,9 @@
 /* ============================================
-   Meditation Pal — Calming dark theme
+   Meditation Pal — Theme system
    ============================================ */
 
-:root {
+:root,
+[data-theme="dark"] {
     --bg-primary: #0c0c18;
     --bg-secondary: #12122a;
     --bg-card: #181836;
@@ -19,10 +20,31 @@
     --danger: #c0564a;
     --facilitator-bg: rgba(124, 111, 234, 0.06);
     --user-bg: rgba(212, 165, 116, 0.06);
+    --overlay-bg: rgba(12, 12, 24, 0.95);
     --radius: 12px;
     --radius-sm: 8px;
     --transition: 0.25s ease;
     --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+[data-theme="light"] {
+    --bg-primary: #f5f3f0;
+    --bg-secondary: #ebe8e4;
+    --bg-card: #e2dfda;
+    --bg-input: #ffffff;
+    --text-primary: #2c2a28;
+    --text-secondary: #6b6560;
+    --text-muted: #9e9790;
+    --accent: #6358c4;
+    --accent-dim: rgba(99, 88, 196, 0.1);
+    --accent-glow: rgba(99, 88, 196, 0.2);
+    --warm: #b07d4f;
+    --warm-dim: rgba(176, 125, 79, 0.1);
+    --border: #d5d0ca;
+    --danger: #b54a3e;
+    --facilitator-bg: rgba(99, 88, 196, 0.06);
+    --user-bg: rgba(176, 125, 79, 0.06);
+    --overlay-bg: rgba(245, 243, 240, 0.95);
 }
 
 *, *::before, *::after {
@@ -42,6 +64,7 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
+    transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 /* ---- Nav ---- */
@@ -65,6 +88,7 @@ body {
 
 .nav-links {
     display: flex;
+    align-items: center;
     gap: 1.5rem;
 }
 
@@ -77,6 +101,28 @@ body {
 
 .nav-links a:hover {
     color: var(--text-primary);
+}
+
+.theme-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    transition: all var(--transition);
+    padding: 0;
+    line-height: 1;
+}
+
+.theme-toggle:hover {
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 /* ---- Main ---- */
@@ -693,7 +739,7 @@ input[type="range"]::-moz-range-thumb {
 .session-ended-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(12, 12, 24, 0.95);
+    background: var(--overlay-bg);
     display: flex;
     align-items: center;
     justify-content: center;
