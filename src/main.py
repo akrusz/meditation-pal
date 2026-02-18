@@ -254,7 +254,7 @@ class MeditationFacilitator:
             response = result.text.strip()
         except Exception as e:
             print(f"\n(LLM error: {e})")
-            response = "Mmm. What do you notice now?"
+            response = "What do you notice now?"
 
         # Check for [HOLD] signal — LLM wants us to enter silence mode
         is_hold, clean_response = parse_hold_signal(response)

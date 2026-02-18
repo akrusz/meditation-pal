@@ -110,7 +110,7 @@ class WebMeditationSession:
             response = result.text.strip()
         except Exception as e:
             print(f"  [LLM ERROR] {type(e).__name__}: {e}", flush=True)
-            response = "Mmm. What do you notice now?"
+            response = "What do you notice now?"
 
         is_hold, clean_response = parse_hold_signal(response)
 
@@ -305,7 +305,7 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
                 emit("silence_mode", {"active": True})
         except Exception:
             emit("facilitator_message", {
-                "text": "Mmm. What do you notice now?",
+                "text": "What do you notice now?",
                 "type": "response",
             })
         finally:
