@@ -535,12 +535,15 @@ option.provider-unavailable {
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .session-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     width: 100%;
     max-width: 960px;
     margin: 0 auto;
@@ -575,6 +578,7 @@ option.provider-unavailable {
     gap: 1rem;
     scroll-behavior: smooth;
     min-height: 0;
+    transition: opacity 0.6s ease;
 
     /* Hide scrollbar but keep functionality */
     scrollbar-width: thin;
@@ -829,7 +833,7 @@ option.provider-unavailable {
 }
 
 .orb-breathing {
-    animation: breathe 6s ease-in-out infinite;
+    animation: breathe 6s ease-in-out infinite, orbFlicker 3.7s ease-in-out infinite;
 }
 
 @keyframes breathe {
@@ -843,6 +847,149 @@ option.provider-unavailable {
         opacity: 0.85;
         box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(212, 135, 58, 0.15);
     }
+}
+
+/* ============================================
+   Ambient Effects
+   ============================================ */
+
+/* Warm vignette — subtle edge darkening like firelight falloff */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(8, 4, 0, 0.2) 100%);
+    pointer-events: none;
+    z-index: 10000;
+}
+
+[data-theme="light"] body::before {
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(120, 90, 50, 0.06) 100%);
+}
+
+/* Organic flicker — layered with breathe to break the perfect sine wave */
+@keyframes orbFlicker {
+    0%, 100% { filter: brightness(1); }
+    30% { filter: brightness(1.1); }
+    70% { filter: brightness(0.92); }
+}
+
+/* ============================================
+   Kasina Mode
+   ============================================ */
+
+.orb-kasina {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: 140px;
+    height: 140px;
+    z-index: 50;
+    background: radial-gradient(circle at 45% 45%, #fffbe0, #ffc040, #e89030, #b05020);
+    box-shadow:
+        0 0 60px rgba(255, 192, 64, 0.3),
+        0 0 120px rgba(232, 144, 48, 0.15),
+        0 0 200px rgba(176, 80, 32, 0.08);
+    animation: kasinaPulse 8s ease-in-out infinite, orbFlicker 4.3s ease-in-out infinite;
+    opacity: 1;
+}
+
+@keyframes kasinaPulse {
+    0%, 100% {
+        transform: scale(0.98);
+        box-shadow:
+            0 0 60px rgba(255, 192, 64, 0.3),
+            0 0 120px rgba(232, 144, 48, 0.15),
+            0 0 200px rgba(176, 80, 32, 0.08);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow:
+            0 0 70px rgba(255, 192, 64, 0.38),
+            0 0 140px rgba(232, 144, 48, 0.2),
+            0 0 240px rgba(176, 80, 32, 0.1);
+    }
+}
+
+.kasina-active .conversation {
+    opacity: 0.15;
+    transition: opacity 0.6s ease;
+}
+
+.kasina-active .typing-indicator {
+    opacity: 0.15;
+}
+
+/* ============================================
+   Ember Particles
+   ============================================ */
+
+.ember-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+    display: none;
+}
+
+.ember-container.active {
+    display: block;
+}
+
+.ember {
+    position: absolute;
+    bottom: -10px;
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.ember:nth-child(1) {
+    left: 18%;
+    width: 2px;
+    height: 2px;
+    background: #e8a840;
+    box-shadow: 0 0 4px 1px rgba(232, 168, 64, 0.4);
+    animation: emberFloat1 14s linear infinite;
+}
+
+.ember:nth-child(2) {
+    left: 62%;
+    width: 3px;
+    height: 3px;
+    background: #d4873a;
+    box-shadow: 0 0 4px 1px rgba(212, 135, 58, 0.4);
+    animation: emberFloat2 17s linear infinite 4s;
+}
+
+.ember:nth-child(3) {
+    left: 38%;
+    width: 2.5px;
+    height: 2.5px;
+    background: #c07830;
+    box-shadow: 0 0 4px 1px rgba(192, 120, 48, 0.35);
+    animation: emberFloat3 20s linear infinite 9s;
+}
+
+@keyframes emberFloat1 {
+    0% { opacity: 0; transform: translateY(0) translateX(0); }
+    8% { opacity: 0.7; }
+    50% { opacity: 0.35; transform: translateY(-45vh) translateX(30px); }
+    100% { opacity: 0; transform: translateY(-95vh) translateX(12px); }
+}
+
+@keyframes emberFloat2 {
+    0% { opacity: 0; transform: translateY(0) translateX(0); }
+    10% { opacity: 0.5; }
+    50% { opacity: 0.3; transform: translateY(-40vh) translateX(-25px); }
+    100% { opacity: 0; transform: translateY(-90vh) translateX(-8px); }
+}
+
+@keyframes emberFloat3 {
+    0% { opacity: 0; transform: translateY(0) translateX(0); }
+    6% { opacity: 0.5; }
+    50% { opacity: 0.25; transform: translateY(-50vh) translateX(20px); }
+    100% { opacity: 0; transform: translateY(-100vh) translateX(-12px); }
 }
 
 /* ============================================

@@ -17,6 +17,10 @@
     const orbEl = document.getElementById('orb');
     const endedOverlay = document.getElementById('session-ended');
     const closerText = document.getElementById('closer-text');
+    const kasinaToggle = document.getElementById('kasina-toggle');
+    const embersToggle = document.getElementById('embers-toggle');
+    const emberContainer = document.getElementById('ember-container');
+    const sessionContainer = document.querySelector('.session-container');
 
     // State
     let sessionActive = false;
@@ -110,6 +114,76 @@
             socket.emit('set_tts_rate', { rate: ttsRate });
         });
 
+        kasinaToggle.addEventListener('change', function () {
+            // Capture current visual state while CSS animations are still running
+            var cs = getComputedStyle(orbEl);
+            var startOpacity = cs.opacity;
+            var startFilter = cs.filter;
+            var startBoxShadow = cs.boxShadow;
+
+            // FIRST — snapshot current orb position
+            var first = orbEl.getBoundingClientRect();
+
+            // Pause CSS animations so they don't fight the transition
+            orbEl.style.animation = 'none';
+
+            // Apply the layout change
+            if (kasinaToggle.checked) {
+                orbEl.classList.remove('orb-breathing');
+                orbEl.classList.add('orb-kasina');
+                sessionContainer.classList.add('kasina-active');
+            } else {
+                orbEl.classList.remove('orb-kasina');
+                orbEl.classList.add('orb-breathing');
+                sessionContainer.classList.remove('kasina-active');
+            }
+
+            // Capture target visual state (new class applied, no animations)
+            var cs2 = getComputedStyle(orbEl);
+            var endBoxShadow = cs2.boxShadow;
+
+            // LAST — snapshot new position
+            var last = orbEl.getBoundingClientRect();
+
+            // INVERT — calculate delta between old and new center
+            var dx = first.left + first.width / 2 - (last.left + last.width / 2);
+            var dy = first.top + first.height / 2 - (last.top + last.height / 2);
+            var scale = first.width / last.width;
+
+            // PLAY — animate from old position/appearance to new
+            var anim = orbEl.animate([
+                {
+                    transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + scale + ')',
+                    opacity: startOpacity,
+                    filter: startFilter,
+                    boxShadow: startBoxShadow
+                },
+                {
+                    transform: 'translate(0, 0) scale(1)',
+                    opacity: 1,
+                    filter: 'brightness(1)',
+                    boxShadow: endBoxShadow
+                }
+            ], {
+                duration: 600,
+                easing: 'ease-in-out'
+            });
+
+            // Re-enable CSS animations once the transition finishes
+            anim.onfinish = function () {
+                orbEl.style.animation = '';
+            };
+        });
+
+        embersToggle.addEventListener('change', function () {
+            emberContainer.classList.toggle('active', embersToggle.checked);
+        });
+
+        // Sync initial toggle states
+        if (embersToggle.checked) {
+            emberContainer.classList.add('active');
+        }
+
         // Start session
         socket.emit('start_session', params);
         sessionActive = true;
@@ -144,6 +218,8 @@
     }
 
     function addMessage(role, text) {
+        var wasAtBottom = isNearBottom();
+
         const msg = document.createElement('div');
         msg.className = 'message ' + role;
 
@@ -153,12 +229,20 @@
         msg.appendChild(content);
 
         conversationEl.appendChild(msg);
-        scrollToBottom();
+        if (wasAtBottom) {
+            scrollToBottom();
+        }
+    }
+
+    function isNearBottom() {
+        var threshold = 50;
+        return conversationEl.scrollTop + conversationEl.clientHeight >= conversationEl.scrollHeight - threshold;
     }
 
     function scrollToBottom() {
-        requestAnimationFrame(function () {
-            conversationEl.scrollTop = conversationEl.scrollHeight;
+        conversationEl.scrollTo({
+            top: conversationEl.scrollHeight,
+            behavior: 'instant'
         });
     }
 

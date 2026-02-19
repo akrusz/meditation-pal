@@ -39,6 +39,14 @@
                 <input type="checkbox" id="tts-toggle" checked>
                 <span class="toggle-text">Voice</span>
             </label>
+            <label class="toggle-label" title="Floating ember particles">
+                <input type="checkbox" id="embers-toggle" checked>
+                <span class="toggle-text">Embers</span>
+            </label>
+            <label class="toggle-label" title="Kasina gazing mode">
+                <input type="checkbox" id="kasina-toggle">
+                <span class="toggle-text">Kasina</span>
+            </label>
             <div class="speed-control" title="Speech rate">
                 <label class="speed-label" for="speed-slider">Speed</label>
                 <input type="range" id="speed-slider" min="80" max="180" value="120" step="10">
@@ -46,6 +54,12 @@
             <button id="end-btn" class="btn btn-end">End Session</button>
         </div>
     </div>
+</div>
+
+<div class="ember-container" id="ember-container">
+    <span class="ember"></span>
+    <span class="ember"></span>
+    <span class="ember"></span>
 </div>
 
 <div class="session-ended-overlay" id="session-ended" style="display: none;">
