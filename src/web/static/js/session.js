@@ -129,13 +129,17 @@
             orbEl.style.animation = 'none';
 
             // Apply the layout change
+            // Move orb out of nav (which has transform) so position:fixed
+            // is relative to the viewport, then move it back on deactivate.
             if (kasinaToggle.checked) {
                 orbEl.classList.remove('orb-breathing', 'orb-nav');
                 orbEl.classList.add('orb-kasina');
+                document.body.appendChild(orbEl);
                 sessionContainer.classList.add('kasina-active');
             } else {
                 orbEl.classList.remove('orb-kasina');
                 orbEl.classList.add('orb-breathing', 'orb-nav');
+                document.querySelector('.nav-session-info').prepend(orbEl);
                 sessionContainer.classList.remove('kasina-active');
             }
 
