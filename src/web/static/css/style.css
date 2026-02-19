@@ -54,7 +54,7 @@
 }
 
 html {
-    font-size: 16px;
+    font-size: 18px;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -82,11 +82,12 @@ body {
 }
 
 .nav-brand {
-    font-size: 1rem;
-    font-weight: 600;
+    font-family: 'Lexend Exa', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 400;
     color: var(--accent);
     text-decoration: none;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.05em;
 }
 
 .nav-links {
@@ -364,17 +365,16 @@ input[type="range"]::-moz-range-thumb {
 /* Style cards */
 
 .style-cards {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
 }
 
 .style-card {
     display: block;
     cursor: pointer;
-    flex: 0 0 calc(50% - 0.25rem);
-    min-width: 0;
 }
+
 
 .style-card input {
     display: none;
@@ -388,6 +388,7 @@ input[type="range"]::-moz-range-thumb {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     transition: all var(--transition);
+    width: 100%;
     height: 100%;
 }
 
@@ -840,7 +841,7 @@ body:has(.session-container) {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: radial-gradient(circle at 40% 40%, #e8a840, var(--accent), #a04828);
+    background: radial-gradient(circle at 40% 40%, #f0b030, #e08020, #b84818);
     box-shadow: 0 0 30px var(--accent-glow), 0 0 60px rgba(212, 135, 58, 0.1);
 }
 

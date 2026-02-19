@@ -2,12 +2,16 @@
 
 {% block title %}Glooow{% endblock %}
 
+{% block nav_center %}
+<div class="nav-session-info">
+    <div class="orb orb-idle orb-nav"></div>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="setup-container">
     <div class="setup-header">
-        <div class="orb orb-idle"></div>
-        <h1>Begin Your Practice</h1>
-        <p class="setup-subtitle">Set an intention, choose how you'd like to be guided, then sit.</p>
+        <p class="setup-subtitle">Set an intention, choose how you'd like to be guided, then sit or lie down.</p>
     </div>
 
     <form id="setup-form" class="setup-form">
@@ -31,6 +35,20 @@
                         <span class="style-desc">Playful exploration of pleasant sensations and natural absorption</span>
                     </div>
                 </label>
+                <label class="style-card" data-style="compassion">
+                    <input type="radio" name="style" value="compassion">
+                    <div class="style-card-inner">
+                        <span class="style-name">Compassion</span>
+                        <span class="style-desc">Turning warmth inward toward parts that are suffering or working hard</span>
+                    </div>
+                </label>
+                <label class="style-card" data-style="somatic">
+                    <input type="radio" name="style" value="somatic">
+                    <div class="style-card-inner">
+                        <span class="style-name">Somatic</span>
+                        <span class="style-desc">Body-focused exploration of sensation</span>
+                    </div>
+                </label>
                 <label class="style-card" data-style="adaptive">
                     <input type="radio" name="style" value="adaptive">
                     <div class="style-card-inner">
@@ -43,13 +61,6 @@
                     <div class="style-card-inner">
                         <span class="style-name">Non-directive</span>
                         <span class="style-desc">Pure presence and reflection, no guidance</span>
-                    </div>
-                </label>
-                <label class="style-card" data-style="somatic">
-                    <input type="radio" name="style" value="somatic">
-                    <div class="style-card-inner">
-                        <span class="style-name">Somatic</span>
-                        <span class="style-desc">Body-focused exploration of sensation</span>
                     </div>
                 </label>
                 <label class="style-card" data-style="open">
@@ -114,7 +125,7 @@
             <label>Orientation</label>
             <div class="modifier-toggles">
                 <label class="modifier-toggle">
-                    <input type="checkbox" name="modifier" value="orient_pleasant" checked>
+                    <input type="checkbox" name="modifier" value="orient_pleasant">
                     <div class="modifier-info">
                         <span class="modifier-name">Orient toward pleasant</span>
                         <span class="modifier-desc">Gently steer toward pleasant or neutral sensations</span>

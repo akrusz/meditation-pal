@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Glooow{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend+Exa:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ range(1000000) | random }}">
     <script>
     // Apply theme before paint to prevent flash.
     // Priority: manual override (expires after 12h) > system preference > time of day.
@@ -40,7 +43,7 @@
         <a href="/" class="nav-brand">Glooow</a>
         {% block nav_center %}{% endblock %}
         <div class="nav-links">
-            <a href="/">New Session</a>
+            {% if request.path != '/' %}<a href="/">New Session</a>{% endif %}
             <a href="/history">History</a>
             <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle theme"></button>
         </div>
