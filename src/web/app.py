@@ -96,8 +96,7 @@ class WebMeditationSession:
         if self.intention:
             base += (
                 f"\n\nThe meditator's intention for this session: \"{self.intention}\"\n"
-                "Hold this lightly. Follow their process rather than forcing toward the goal. "
-                "The intention is a compass, not a cage."
+                "Hold this lightly. Follow their process rather than forcing toward the goal."
             )
         return base
 

@@ -185,9 +185,9 @@ stt:
 
 tts:
   # Engine options:
-  #   macos   — macOS native 'say' command (macOS only)
-  #   piper   — Piper neural TTS (pip install piper-tts)
-  #   browser — no server-side audio; falls back to browser speechSynthesis
+  #   macos   -- macOS native 'say' command (macOS only)
+  #   piper   -- Piper neural TTS (pip install piper-tts)
+  #   browser -- no server-side audio; falls back to browser speechSynthesis
   engine: $TTS_ENGINE
   voice: "Zoe (Premium)"
   rate: 160  # words per minute
