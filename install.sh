@@ -139,6 +139,11 @@ info "Detecting TTS engine..."
 if [ "$OS" = "Darwin" ]; then
     TTS_ENGINE="macos"
     ok "Using macOS native TTS (say command)"
+    echo ""
+    echo "  Tip: the default macOS voices are pretty robotic. For a more natural sound,"
+    echo "  install a premium voice in System Settings > Accessibility > Spoken Content"
+    echo "  > System Voice > Manage Voices. Try \"Zoe (Premium)\" or \"Samantha (Premium)\"."
+    echo "  Then set tts.voice in $CONFIG_FILE to match."
 else
     TTS_ENGINE="browser"
     ok "Using browser-based speechSynthesis (no server-side TTS on Linux)"
