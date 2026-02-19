@@ -133,10 +133,11 @@ class MeditationFacilitator:
         """Run the main event loop."""
         self._running = True
 
-        # Set up signal handlers
-        loop = asyncio.get_event_loop()
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, self._handle_interrupt)
+        # Set up signal handlers (not available on Windows)
+        if sys.platform != "win32":
+            loop = asyncio.get_event_loop()
+            for sig in (signal.SIGINT, signal.SIGTERM):
+                loop.add_signal_handler(sig, self._handle_interrupt)
 
         print("\n" + "=" * 60)
         print("  Somatic Exploration Meditation Facilitator")

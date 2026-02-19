@@ -5,7 +5,6 @@ https://github.com/rhasspy/piper
 """
 
 import asyncio
-import subprocess
 import tempfile
 from pathlib import Path
 
@@ -34,7 +33,6 @@ class PiperTTS:
         self.voice = voice
         self.rate = rate
         self._speaking = False
-        self._process: asyncio.subprocess.Process | None = None
 
     async def speak(self, text: str) -> None:
         """Speak the given text.
@@ -77,29 +75,21 @@ class PiperTTS:
 
             # Play the audio
             if Path(output_path).exists():
-                play_proc = await asyncio.create_subprocess_exec(
-                    "afplay", output_path,  # macOS
-                    stdout=asyncio.subprocess.DEVNULL,
-                    stderr=asyncio.subprocess.DEVNULL,
-                )
-                self._process = play_proc
-                await play_proc.wait()
+                from ..audio.playback import play_audio_file
+
+                await play_audio_file(output_path)
 
                 # Clean up
                 Path(output_path).unlink(missing_ok=True)
 
         finally:
             self._speaking = False
-            self._process = None
 
     def stop(self) -> None:
         """Stop any current speech."""
-        if self._process:
-            try:
-                self._process.terminate()
-            except ProcessLookupError:
-                pass
-            self._process = None
+        from ..audio.playback import stop_playback
+
+        stop_playback()
         self._speaking = False
 
     def is_speaking(self) -> bool:

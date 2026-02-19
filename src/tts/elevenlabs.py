@@ -7,10 +7,7 @@ https://elevenlabs.io/
 """
 
 import asyncio
-import io
 import os
-import tempfile
-from pathlib import Path
 
 import httpx
 
@@ -83,7 +80,6 @@ class ElevenLabsTTS:
 
         self._speaking = False
         self._client: httpx.AsyncClient | None = None
-        self._current_process: asyncio.subprocess.Process | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -126,11 +122,11 @@ class ElevenLabsTTS:
             text: Text to synthesize
 
         Returns:
-            Audio data as bytes (MP3 format)
+            Audio data as bytes (raw 16-bit PCM at 22050 Hz)
         """
         client = await self._get_client()
 
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.voice_id}"
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.voice_id}?output_format=pcm_22050"
 
         payload = {
             "text": text,
@@ -149,32 +145,16 @@ class ElevenLabsTTS:
         return response.content
 
     async def _play_audio(self, audio_data: bytes) -> None:
-        """Play audio data."""
-        # Save to temp file
-        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-            f.write(audio_data)
-            temp_path = f.name
+        """Play audio data (raw 16-bit PCM at 22050 Hz)."""
+        from ..audio.playback import play_audio_bytes
 
-        try:
-            # Play with system command
-            self._current_process = await asyncio.create_subprocess_exec(
-                "afplay", temp_path,  # macOS
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.DEVNULL,
-            )
-            await self._current_process.wait()
-        finally:
-            self._current_process = None
-            Path(temp_path).unlink(missing_ok=True)
+        await play_audio_bytes(audio_data, sample_rate=22050)
 
     def stop(self) -> None:
         """Stop current speech."""
-        if self._current_process:
-            try:
-                self._current_process.terminate()
-            except ProcessLookupError:
-                pass
-            self._current_process = None
+        from ..audio.playback import stop_playback
+
+        stop_playback()
         self._speaking = False
 
     def is_speaking(self) -> bool:
