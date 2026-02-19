@@ -130,12 +130,12 @@
 
             // Apply the layout change
             if (kasinaToggle.checked) {
-                orbEl.classList.remove('orb-breathing');
+                orbEl.classList.remove('orb-breathing', 'orb-nav');
                 orbEl.classList.add('orb-kasina');
                 sessionContainer.classList.add('kasina-active');
             } else {
                 orbEl.classList.remove('orb-kasina');
-                orbEl.classList.add('orb-breathing');
+                orbEl.classList.add('orb-breathing', 'orb-nav');
                 sessionContainer.classList.remove('kasina-active');
             }
 

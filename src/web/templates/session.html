@@ -6,14 +6,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
 {% endblock %}
 
+{% block nav_center %}
+<div class="nav-session-info">
+    <div class="orb orb-breathing orb-nav" id="orb"></div>
+    <span class="session-timer" id="timer">0:00</span>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="session-container">
-    <div class="session-ambient">
-        <div class="orb orb-breathing" id="orb"></div>
-    </div>
-
-    <div class="session-timer" id="timer">0:00</div>
-
     <div class="conversation" id="conversation">
         <!-- Messages appear here -->
     </div>
