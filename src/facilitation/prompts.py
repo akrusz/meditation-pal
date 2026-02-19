@@ -266,7 +266,7 @@ but don't force things toward it.
 """,
     FacilitationStyle.NON_DIRECTIVE: """
 You practice pure non-directive facilitation.
-- Only reflect and ask "What's here now?"
+- Only reflect and ask questions like "What's here now?"
 - Never suggest where to look or what to do
 - Trust the meditator's process completely
 - Your presence is the only guidance
@@ -276,7 +276,7 @@ Focus on body-based exploration:
 - "What do you notice in your body?"
 - Guide attention through different body areas
 - Explore texture, temperature, movement, density
-- Stay with physical sensations rather than thoughts or emotions
+- Stay with physical sensations rather than thoughts
 """,
     FacilitationStyle.OPEN: """
 Minimal facilitation - mostly holding space.
@@ -292,7 +292,7 @@ Core approach:
 - Gently invite them to notice if there's a part of them that could use some kindness right now
 - A "part" is any aspect of their inner experience — a feeling, a tension, a voice, a pattern, \
 a younger version of themselves, something that's been working overtime or holding on tight, even a body part
-- You don't need to use clinical language. "A part of you," "something in you," \
+- Prefer phenomenological language rather than clinical language. "A part of you," "something in you," \
 "that place inside" are all fine
 
 Working with parts:
@@ -338,18 +338,62 @@ CHECK_IN_PROMPTS = [
     "No rush at all.",
 ]
 
-SESSION_OPENERS = [
+# Generic openers shared across styles
+_COMMON_OPENERS = [
     "What do you notice right now?",
     "Let's begin. What's here?",
     "Taking a moment to arrive... what do you notice?",
     "When you're ready, what are you aware of?",
     "Settling in. What's present for you?",
     "Let's just start where you are. What's happening right now?",
+    "Whenever you're ready... what's showing up?",
+    "Take a moment to land. What's present?",
+]
+
+# Per-style openers: a few flavored ones mixed with common ones.
+# The flavored ones gently lean into the style without announcing it.
+STYLE_OPENERS = {
+    FacilitationStyle.PLEASANT_PLAY: [
+        "Settling in... is there anything that feels nice right now?",
+        "Take a moment to arrive. What feels good, even a little?",
+        "What do you notice right now? Is there anything pleasant?",
+        "Hi. Let's begin gently. Is there something that feels okay?",
+    ] + _COMMON_OPENERS[:4],
+    FacilitationStyle.COMPASSION: [
+        "Take a moment to arrive... how are you doing in there?",
+        "Settling in. How are you feeling right now?",
+        "Hi. Let's begin gently. How are you?",
+        "Checking in with yourself... what's present?",
+    ] + _COMMON_OPENERS[:4],
+    FacilitationStyle.SOMATIC: [
+        "Settling into your body... what do you notice?",
+        "Take a moment to feel your body. What's there?",
+        "What do you notice in your body right now?",
+        "Let's start with the body. What are you aware of?",
+    ] + _COMMON_OPENERS[:4],
+    FacilitationStyle.ADAPTIVE: _COMMON_OPENERS + [
+        "What's alive for you right now?",
+        "Let's see what's here today. What do you notice?",
+    ],
+    FacilitationStyle.NON_DIRECTIVE: [
+        "What's here?",
+        "What do you notice?",
+        "What's present?",
+        "What are you aware of?",
+    ],
+    FacilitationStyle.OPEN: [
+        "I'm here whenever you're ready.",
+        "Take your time.",
+        "Whenever you're ready.",
+        "I'm here.",
+    ],
+}
+
+# Fallback for no style set
+SESSION_OPENERS = _COMMON_OPENERS + [
     "Welcome. Take a breath and tell me what you notice.",
     "Just being present. What are you aware of?",
-    "Whenever you're ready... what's showing up?",
     "Let's see what's here today. What do you notice?",
-    "Take a moment to land. What's present?",
     "Hi. Let's begin gently. What do you feel right now?",
 ]
 
@@ -404,8 +448,10 @@ class PromptBuilder:
         return "\n".join(parts)
 
     def get_session_opener(self) -> str:
-        """Get a phrase to open the session."""
+        """Get a phrase to open the session, flavored by style if set."""
         import random
+        if self.config.style and self.config.style in STYLE_OPENERS:
+            return random.choice(STYLE_OPENERS[self.config.style])
         return random.choice(SESSION_OPENERS)
 
     def get_check_in_prompt(self) -> str:
