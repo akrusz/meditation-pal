@@ -1,19 +1,24 @@
 """Text-to-speech engines."""
 
+import sys
+
 from .base import TTSEngine
-from .macos import MacOSTTS
 from .piper import PiperTTS
 from .parakeet import ParakeetTTS
 from .elevenlabs import ElevenLabsTTS
 
 __all__ = [
     "TTSEngine",
-    "MacOSTTS",
     "PiperTTS",
     "ParakeetTTS",
     "ElevenLabsTTS",
     "create_tts",
 ]
+
+# Only import MacOSTTS on macOS
+if sys.platform == "darwin":
+    from .macos import MacOSTTS
+    __all__.append("MacOSTTS")
 
 
 def create_tts(
@@ -39,6 +44,13 @@ def create_tts(
         TTS engine instance, or None for browser-only mode
     """
     if engine == "macos":
+        if sys.platform != "darwin":
+            print(
+                "Warning: 'macos' TTS engine is only available on macOS. "
+                "Falling back to browser TTS."
+            )
+            return None
+        from .macos import MacOSTTS
         return MacOSTTS(
             voice=voice or "Samantha",
             rate=rate,

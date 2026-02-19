@@ -213,8 +213,9 @@ class ParakeetTTS:
                 lambda: sd.play(waveform, self._sample_rate, blocking=True)
             )
         except ImportError:
-            # Fallback: save to file and use system player
+            # Fallback: save to file and use cross-platform player
             import scipy.io.wavfile as wav
+            from ..audio.playback import play_audio_file
 
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
                 temp_path = f.name
@@ -224,13 +225,7 @@ class ParakeetTTS:
             waveform_int = (waveform * 32767).astype(np.int16)
             wav.write(temp_path, self._sample_rate, waveform_int)
 
-            # Play with system command
-            proc = await asyncio.create_subprocess_exec(
-                "afplay", temp_path,  # macOS
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.DEVNULL,
-            )
-            await proc.wait()
+            await play_audio_file(temp_path)
 
             Path(temp_path).unlink(missing_ok=True)
 
