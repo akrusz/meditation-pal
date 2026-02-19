@@ -51,6 +51,7 @@ class WebMeditationSession:
             "somatic": FacilitationStyle.SOMATIC,
             "open": FacilitationStyle.OPEN,
             "adaptive": FacilitationStyle.ADAPTIVE,
+            "compassion": FacilitationStyle.COMPASSION,
         }
 
         prompt_config = PromptConfig(

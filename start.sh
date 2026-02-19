@@ -106,8 +106,37 @@ if [ "$LLM_PROVIDER" = "claude_proxy" ]; then
     fi
 fi
 
+# ── Open browser? ────────────────────────────────
+
+OPEN_BROWSER=""
+if [ "${QUIET:-}" != "1" ]; then
+    # Prompt with 10-second timeout, default yes
+    printf "  Open localhost:5555 in your browser? [Y/n] (auto-yes in 10s): "
+    if read -r -t 10 OPEN_BROWSER; then
+        : # user answered
+    else
+        OPEN_BROWSER="Y"
+        echo "Y"
+    fi
+    OPEN_BROWSER="${OPEN_BROWSER:-Y}"
+fi
+
 # ── Launch the web app ───────────────────────────
 
 info "Starting Glooow web server..."
 echo ""
+
+# Open browser in background after server has a moment to start
+if [ "$OPEN_BROWSER" = "Y" ] || [ "$OPEN_BROWSER" = "y" ]; then
+    (
+        sleep 1.5
+        OS="$(uname -s)"
+        if [ "$OS" = "Darwin" ]; then
+            open "http://localhost:5555" 2>/dev/null
+        else
+            xdg-open "http://localhost:5555" 2>/dev/null || true
+        fi
+    ) &
+fi
+
 uv run python -m src.web

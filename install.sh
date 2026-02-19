@@ -38,8 +38,25 @@ echo "  ╚═══════════════════════
 # uv
 info "Checking uv..."
 if ! command -v uv &>/dev/null; then
-    err "uv not found. Install it: https://docs.astral.sh/uv/getting-started/installation/"
-    exit 1
+    warn "uv not found. uv is a fast Python package manager needed to run glooow."
+    echo ""
+    printf "  Install uv now? [Y/n]: " >&2
+    read -r INSTALL_UV
+    INSTALL_UV="${INSTALL_UV:-Y}"
+    if [ "$INSTALL_UV" = "Y" ] || [ "$INSTALL_UV" = "y" ]; then
+        info "Installing uv..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        # Source the env so uv is available in this session
+        export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+        if ! command -v uv &>/dev/null; then
+            err "uv installation failed. Install manually: https://docs.astral.sh/uv/getting-started/installation/"
+            exit 1
+        fi
+        ok "uv installed"
+    else
+        err "uv is required. Install it: https://docs.astral.sh/uv/getting-started/installation/"
+        exit 1
+    fi
 fi
 ok "uv $(uv --version | awk '{print $2}')"
 

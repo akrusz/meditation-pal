@@ -117,10 +117,36 @@ try {
         }
     }
 
+    # ── Open browser? ────────────────────────────────
+
+    $OpenBrowser = "Y"
+    Write-Host -NoNewline "  Open localhost:5555 in your browser? [Y/n] (auto-yes in 10s): "
+
+    # Wait up to 10 seconds for input
+    $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    while (-not [Console]::KeyAvailable -and $Stopwatch.Elapsed.TotalSeconds -lt 10) {
+        Start-Sleep -Milliseconds 100
+    }
+    if ([Console]::KeyAvailable) {
+        $OpenBrowser = [Console]::ReadLine()
+        if ([string]::IsNullOrWhiteSpace($OpenBrowser)) { $OpenBrowser = "Y" }
+    } else {
+        Write-Host "Y"
+    }
+
     # ── Launch the web app ───────────────────────────
 
     Info "Starting Glooow web server..."
     Write-Host ""
+
+    # Open browser in background after server has a moment to start
+    if ($OpenBrowser -eq "Y" -or $OpenBrowser -eq "y") {
+        Start-Job -ScriptBlock {
+            Start-Sleep -Milliseconds 1500
+            Start-Process "http://localhost:5555"
+        } | Out-Null
+    }
+
     uv run python -m src.web
 
 } finally {

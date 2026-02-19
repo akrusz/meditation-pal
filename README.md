@@ -4,7 +4,7 @@ your voice is an overpowered and underrated meditation/inner work tool.
 
 this is a meditation facilitator that listens and responds to your voice. runs in your browser, uses an LLM to guide you, whisper for speech recognition, and your mic for voice input
 
-works on macos and linux. bring your own LLM — claude subscription via CLIProxyAPI, anthropic API key, openrouter for cheap non-claude models (deepseek, kimi), or local ollama
+works on macos, linux, and windows. bring your own LLM — claude subscription via CLIProxyAPI, anthropic API key, openrouter for cheap non-claude models (deepseek, kimi), or local ollama
 
 ## what it does
 
@@ -16,7 +16,7 @@ facilitation styles range from open-ended ("what do you notice?") to somatic-foc
 
 you need:
 - python 3.10+
-- [uv](https://docs.astral.sh/uv/) for package management
+- [uv](https://docs.astral.sh/uv/) for package management (the install script will offer to install it if missing)
 - a mic
 - an LLM provider (see below)
 
@@ -31,16 +31,28 @@ cd glooow
 
 the install script walks you through everything -- system deps, LLM provider choice, whisper model download. it writes your config to `config/default.yaml`
 
-`start.sh` handles the rest: starts CLIProxyAPI if needed, launches the web server on port 5555, cleans up on ctrl-c
+`start.sh` handles the rest: starts CLIProxyAPI if needed, launches the web server on port 5555, and offers to open your browser. cleans up on ctrl-c
 
-open [localhost:5555](http://localhost:5555) and you're in
+### windows
+
+on windows, use PowerShell:
+
+```powershell
+git clone https://github.com/akrusz/glooow.git
+cd glooow
+# install uv if you haven't: irm https://astral.sh/uv/install.ps1 | iex
+uv venv && uv pip install -r requirements.txt
+.\start.ps1
+```
+
+set `tts.engine: browser` in `config/default.yaml` (the macOS `say` command isn't available on windows, but browser speechSynthesis works great)
 
 ## how it works
 
 - **audio capture** -- Web Audio API in the browser, shipped as raw PCM to the server
 - **speech recognition** -- openai whisper running locally (the `small` model, ~500mb)
 - **LLM** -- claude via CLIProxyAPI or anthropic API, openrouter (deepseek, kimi, etc.), openai, or local ollama
-- **TTS** -- macos `say` command on mac, browser speechSynthesis on linux. piper-tts is an option if you want better quality server-side audio on linux
+- **TTS** -- macos `say` command on mac, browser speechSynthesis on linux/windows. piper-tts is an option if you want better quality server-side audio on linux
 
 ## facilitation styles
 
@@ -53,6 +65,7 @@ pick one in the web UI before starting:
 | **non-directive** | pure presence. reflects and asks "what's here now?" |
 | **somatic** | body-focused -- texture, temperature, movement, density |
 | **open** | minimal facilitation. holds space. long silences welcome |
+| **compassion** | inner compassion and parts work. notices parts that are suffering or working hard, invites care and curiosity toward them |
 
 ## configuration
 
@@ -134,5 +147,6 @@ src/
 config/         default.yaml
 sessions/       saved transcripts
 install.sh      first-time setup
-start.sh        launch script
+start.sh        launch script (macOS/linux)
+start.ps1       launch script (windows)
 ```
