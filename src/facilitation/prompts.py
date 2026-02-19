@@ -338,7 +338,7 @@ CHECK_IN_PROMPTS = [
     "No rush at all.",
 ]
 
-# Generic openers shared across styles
+# Generic openers used for variety across all styles
 _COMMON_OPENERS = [
     "What do you notice right now?",
     "Let's begin. What's here?",
@@ -350,31 +350,30 @@ _COMMON_OPENERS = [
     "Take a moment to land. What's present?",
 ]
 
-# Per-style openers: a few flavored ones mixed with common ones.
-# The flavored ones gently lean into the style without announcing it.
-STYLE_OPENERS = {
+# Per-style openers: flavored ones mixed with common ones for variety.
+SESSION_OPENERS = {
     FacilitationStyle.PLEASANT_PLAY: [
         "Settling in... is there anything that feels nice right now?",
         "Take a moment to arrive. What feels good, even a little?",
         "What do you notice right now? Is there anything pleasant?",
         "Hi. Let's begin gently. Is there something that feels okay?",
-    ] + _COMMON_OPENERS[:4],
+    ] + _COMMON_OPENERS,
     FacilitationStyle.COMPASSION: [
         "Take a moment to arrive... how are you doing in there?",
         "Settling in. How are you feeling right now?",
         "Hi. Let's begin gently. How are you?",
         "Checking in with yourself... what's present?",
-    ] + _COMMON_OPENERS[:4],
+    ] + _COMMON_OPENERS,
     FacilitationStyle.SOMATIC: [
         "Settling into your body... what do you notice?",
         "Take a moment to feel your body. What's there?",
         "What do you notice in your body right now?",
         "Let's start with the body. What are you aware of?",
-    ] + _COMMON_OPENERS[:4],
-    FacilitationStyle.ADAPTIVE: _COMMON_OPENERS + [
+    ] + _COMMON_OPENERS,
+    FacilitationStyle.ADAPTIVE: [
         "What's alive for you right now?",
         "Let's see what's here today. What do you notice?",
-    ],
+    ] + _COMMON_OPENERS,
     FacilitationStyle.NON_DIRECTIVE: [
         "What's here?",
         "What do you notice?",
@@ -388,14 +387,6 @@ STYLE_OPENERS = {
         "I'm here.",
     ],
 }
-
-# Fallback for no style set
-SESSION_OPENERS = _COMMON_OPENERS + [
-    "Welcome. Take a breath and tell me what you notice.",
-    "Just being present. What are you aware of?",
-    "Let's see what's here today. What do you notice?",
-    "Hi. Let's begin gently. What do you feel right now?",
-]
 
 
 def parse_hold_signal(response: str) -> tuple[bool, str]:
@@ -448,11 +439,9 @@ class PromptBuilder:
         return "\n".join(parts)
 
     def get_session_opener(self) -> str:
-        """Get a phrase to open the session, flavored by style if set."""
+        """Get a phrase to open the session, flavored by style."""
         import random
-        if self.config.style and self.config.style in STYLE_OPENERS:
-            return random.choice(STYLE_OPENERS[self.config.style])
-        return random.choice(SESSION_OPENERS)
+        return random.choice(SESSION_OPENERS[self.config.style])
 
     def get_check_in_prompt(self) -> str:
         """Get a gentle check-in phrase for long silences."""
