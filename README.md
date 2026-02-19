@@ -118,7 +118,7 @@ uses your mic directly via sounddevice and speaks responses through the system T
 - if speech recognition feels slow, try `stt.model: base` (faster, less accurate)
 - on linux without piper, TTS falls back to browser speechSynthesis automatically
 - sessions auto-save to `sessions/` as JSON and plain text
-- say "going quiet" during a session to enter silence mode. say anything to come back
+- say something like "hold on a bit" during a session to enter silence mode. say anything to come back - it understands intent
 - set an intention loosely or not at all. the facilitator holds it lightly
 
 ## project layout
