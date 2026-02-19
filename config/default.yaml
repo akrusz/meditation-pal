@@ -38,7 +38,7 @@ llm:
 
   # For claude_proxy (CLIProxyAPI)
   proxy_url: http://127.0.0.1:8317
-  api_key: meditation-pal
+  api_key: glooow
 
   # For direct Anthropic API
   # provider: anthropic

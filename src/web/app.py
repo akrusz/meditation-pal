@@ -152,7 +152,7 @@ def create_app(config: Config | None = None) -> tuple[Flask, SocketIO]:
         template_folder=str(Path(__file__).parent / "templates"),
         static_folder=str(Path(__file__).parent / "static"),
     )
-    app.config["SECRET_KEY"] = "meditation-pal-local"
+    app.config["SECRET_KEY"] = "glooow-local"
 
     socketio = SocketIO(
         app,
@@ -513,7 +513,7 @@ def run_web(
             return
 
     print(f"\n{'=' * 50}")
-    print("  Meditation Pal — starting up...")
+    print("  Glooow — starting up...")
     print(f"{'=' * 50}")
 
     app, socketio = create_app(config)

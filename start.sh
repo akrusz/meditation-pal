@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────
-# Meditation Pal — Launch script
+# Glooow — Launch script
 # ─────────────────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -56,7 +56,7 @@ trap cleanup EXIT INT TERM
 if [ "${QUIET:-}" != "1" ]; then
     echo ""
     echo "  ╔══════════════════════════════════════╗"
-    echo "  ║       Meditation Pal                 ║"
+    echo "  ║       Glooow                          ║"
     echo "  ╚══════════════════════════════════════╝"
     echo ""
     info "LLM:    $LLM_PROVIDER ($LLM_MODEL)"
@@ -108,6 +108,6 @@ fi
 
 # ── Launch the web app ───────────────────────────
 
-info "Starting Meditation Pal web server..."
+info "Starting Glooow web server..."
 echo ""
 uv run python -m src.web

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────
-# Meditation Pal — First-time setup
+# Glooow — First-time setup
 # ─────────────────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -32,7 +32,7 @@ OS="$(uname -s)"
 
 echo ""
 echo "  ╔══════════════════════════════════════╗"
-echo "  ║       Meditation Pal — Setup         ║"
+echo "  ║       Glooow — Setup                  ║"
 echo "  ╚══════════════════════════════════════╝"
 
 # uv
@@ -88,7 +88,7 @@ LLM_CHOICE=$(ask "Choice" "1")
 LLM_PROVIDER="claude_proxy"
 LLM_MODEL="claude-sonnet-4-5-20250929"
 PROXY_URL="http://127.0.0.1:8317"
-API_KEY="meditation-pal"
+API_KEY="glooow"
 OLLAMA_URL="http://localhost:11434"
 OLLAMA_MODEL="llama3"
 

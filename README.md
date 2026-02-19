@@ -1,4 +1,4 @@
-# meditation pal
+# glooow
 
 your voice is an overpowered and underrated meditation/inner work tool.
 
@@ -23,8 +23,8 @@ you need:
 then:
 
 ```bash
-git clone https://github.com/akrusz/meditation-pal.git
-cd meditation-pal
+git clone https://github.com/akrusz/glooow.git
+cd glooow
 ./install.sh
 ./start.sh
 ```
