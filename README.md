@@ -2,7 +2,7 @@
 
 your voice is an overpowered and underrated tool for meditation and inner work.
 
-this is a meditation facilitator that listens and responds to your voice. runs in your browser, uses an LLM to guide you, whisper for speech recognition, and your mic for voice input
+this is a meditation facilitator that listens and responds to your voice. it runs in your browser and uses an LLM to guide you, whisper for speech recognition, and your mic for voice input
 
 works on macos, linux, and windows. bring your own LLM - claude subscription via CLIProxyAPI, anthropic API key, openrouter for cheap non-claude models (deepseek, kimi), or local ollama
 
