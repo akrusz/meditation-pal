@@ -29,7 +29,7 @@ class STTConfig:
 class TTSConfig:
     engine: str = "macos"
     voice: str = "Samantha"
-    rate: int = 180
+    rate: int = 120
 
     # Parakeet options
     model_name: str = "nvidia/parakeet-tts-1.1b"

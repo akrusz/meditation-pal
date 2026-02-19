@@ -86,9 +86,10 @@
     let bargeInCount = 0;          // consecutive high-energy chunks during TTS
 
     var SILENCE_THRESHOLD = 0.015; // RMS level below which counts as silence
-    var SILENCE_DURATION = 2000;   // ms of silence before auto-submitting
+    var SILENCE_DURATION = 3000;   // ms of silence before auto-submitting
     var PRE_BUFFER_CHUNKS = 20;    // ~2s of audio to keep before speech onset
     var MIN_SPEECH_DURATION = 500; // ms — reject sounds shorter than this
+    var MIN_UTTERANCE_DURATION = 4000; // ms — don't submit until this long after speech onset
     var NOISE_REJECT_MS = 200;     // ms — abort speech_started if silence exceeds this
     var TTS_COOLDOWN_MS = 800;     // ignore mic for this long after TTS ends
     var TTS_WATCHDOG_MS = 1500;    // force-reset ttsSpeaking if synth stopped this long ago
@@ -240,9 +241,11 @@
     }
 
     function scrollToBottom() {
-        conversationEl.scrollTo({
-            top: conversationEl.scrollHeight,
-            behavior: 'instant'
+        // Immediate scroll so isNearBottom() sees the right position
+        conversationEl.scrollTop = conversationEl.scrollHeight;
+        // Re-scroll after render to catch any layout reflow from text wrapping
+        requestAnimationFrame(function () {
+            conversationEl.scrollTop = conversationEl.scrollHeight;
         });
     }
 
@@ -492,7 +495,8 @@
                     if (isSpeech) {
                         lastSpeechTime = now;
                     } else {
-                        if (now - lastSpeechTime >= SILENCE_DURATION) {
+                        if (now - lastSpeechTime >= SILENCE_DURATION &&
+                            now - speechStartTime >= MIN_UTTERANCE_DURATION) {
                             submitUtterance();
                         }
                     }
