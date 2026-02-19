@@ -72,6 +72,12 @@ try {
         Warn "macOS TTS engine is not available on Windows."
         Warn "Set tts.engine to 'browser' or 'piper' in $ConfigFile"
     }
+    if ($TtsEngine -eq "browser") {
+        Write-Host ""
+        Write-Host "  Tip: for the best voice quality on Windows, open glooow in Edge."
+        Write-Host "  Edge has access to Microsoft's natural voices (Ava, Jenny) which"
+        Write-Host "  sound much better than the default system voices in Chrome/Firefox."
+    }
     Write-Host ""
 
     # ── Auto-start CLIProxyAPI if needed ─────────────

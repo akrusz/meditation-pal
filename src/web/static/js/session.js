@@ -34,9 +34,14 @@
     const synth = window.speechSynthesis || null;
     let preferredVoice = null;
 
-    // Resolve preferred TTS voice once voices are loaded
-    // Preferred voices in order — premium macOS voices first, then standard fallbacks
-    var VOICE_PREFERENCES = ['Zoe', 'Ava', 'Samantha', 'Karen'];
+    // Resolve preferred TTS voice once voices are loaded.
+    // macOS premium voices first, then Microsoft natural voices (Edge on Windows),
+    // then standard fallbacks.
+    var VOICE_PREFERENCES = [
+        'Zoe', 'Ava (Premium)', 'Samantha',       // macOS
+        'Microsoft Ava Online', 'Microsoft Jenny Online', 'Microsoft Guy Online',  // Edge/Windows
+        'Karen',                                    // fallback
+    ];
 
     function resolveVoice() {
         if (!synth) return;

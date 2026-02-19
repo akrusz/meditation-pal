@@ -45,7 +45,7 @@ uv venv && uv pip install -r requirements.txt
 .\start.ps1
 ```
 
-set `tts.engine: browser` in `config/default.yaml` (the macOS `say` command isn't available on windows, but browser speechSynthesis works great)
+set `tts.engine: browser` in `config/default.yaml`. for best voice quality, use Edge -- it has access to Microsoft's natural voices (Ava, Jenny) through speechSynthesis. Chrome and Firefox only get the basic system voices which sound more robotic
 
 ## how it works
 
