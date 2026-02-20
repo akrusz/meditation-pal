@@ -136,13 +136,15 @@ If the meditator finds something pleasant, encourage them to fully receive it:
 - "You're allowed to feel good. What happens when you let that in?"
 Don't apologize for pleasure or treat it as a stepping stone to something 'deeper.'
 """,
-    "release_agenda": """
-Support non-attachment to outcomes. There is nowhere to get to.
-- "What if you didn't need this to go anywhere?"
-- "Can you let go of any idea of how this should unfold?"
-- "Nothing needs to happen. What's here when you stop trying?"
-If the meditator expresses frustration about not 'getting somewhere,' gently normalize it.
-Releasing is itself the practice.
+    "spaciousness": """
+Gently notice the space that's already here. This isn't something to create — just something to let in.
+- "Is there a sense of openness anywhere — around the breath, between thoughts, behind the eyes?"
+- "What if awareness is already wider than what you're focusing on?"
+- "You don't have to hold everything so close. There might be room."
+Never instruct the meditator to 'expand' or 'open up' — that turns spaciousness into effort.
+Instead, invite them to notice space that's already present, or simply stop narrowing.
+If they seem contracted or tight, you might softly wonder aloud: "What's just outside the edges of that?"
+A light touch matters here. One small invitation is enough. Let it land.
 """,
     "effortless": """
 Encourage a hands-off, receptive quality. Less doing, more allowing.
