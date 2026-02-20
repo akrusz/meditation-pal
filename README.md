@@ -53,6 +53,19 @@ once running, the server listens on port 5555:
 - **windows**: set `tts.engine: browser` in config. for best voice quality, use Edge — it has access to Microsoft's natural voices (Ava, Jenny) through speechSynthesis. Chrome and Firefox only get the basic system voices
 - **linux**: for server-side TTS, install piper-tts (`uv pip install piper-tts`) and set `tts.engine: piper`. otherwise TTS falls back to browser speechSynthesis
 
+### nix
+
+if you have nix with flakes enabled:
+
+```bash
+git clone https://github.com/akrusz/glooow.git
+cd glooow
+nix develop -c python -m src.web  # web server
+nix develop -c python -m src      # CLI mode
+```
+
+the flake automatically sets up all dependencies including portaudio, ffmpeg, and python packages. the dev shell creates `config/default.yaml` if it doesn't exist
+
 ## how it works
 
 - **audio capture** -- Web Audio API in the browser, shipped as raw PCM to the server
