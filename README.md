@@ -27,17 +27,13 @@ then:
 ```bash
 git clone https://github.com/akrusz/glooow.git
 cd glooow
-./install.sh
-./start.sh
+./install.sh        # walks you through setup — deps, LLM provider, whisper model
+./start.sh          # starts the server (and CLIProxyAPI if needed)
 ```
 
-the install script walks you through everything -- system deps, LLM provider choice, whisper model download. it writes your config to `config/default.yaml`
-
-`start.sh` handles the rest: starts CLIProxyAPI if needed and launches the web server on port 5555. press **B** to open the browser, **Q** to quit
+on windows, use `.\start.ps1` instead of `./start.sh`. if you need to install uv: `irm https://astral.sh/uv/install.ps1 | iex`
 
 ### running the server
-
-there are a few ways to start the web server:
 
 ```bash
 ./start.sh           # full launcher: auto-starts CLIProxyAPI, shows config banner
@@ -45,7 +41,7 @@ there are a few ways to start the web server:
 uv run python -m src.web   # direct, same as start-server.sh
 ```
 
-once running, the server shows keyboard shortcuts:
+once running, the server listens on port 5555:
 
 | key | action |
 |-----|--------|
@@ -53,19 +49,10 @@ once running, the server shows keyboard shortcuts:
 | **Q** | quit |
 | **Ctrl+C** | quit |
 
-### windows
+### platform notes
 
-on windows, use PowerShell:
-
-```powershell
-git clone https://github.com/akrusz/glooow.git
-cd glooow
-# install uv if you haven't: irm https://astral.sh/uv/install.ps1 | iex
-uv venv && uv pip install -r requirements.txt
-.\start.ps1
-```
-
-set `tts.engine: browser` in `config/default.yaml`. for best voice quality, use Edge -- it has access to Microsoft's natural voices (Ava, Jenny) through speechSynthesis. Chrome and Firefox only get the basic system voices which sound more robotic
+- **windows**: set `tts.engine: browser` in config. for best voice quality, use Edge — it has access to Microsoft's natural voices (Ava, Jenny) through speechSynthesis. Chrome and Firefox only get the basic system voices
+- **linux**: for server-side TTS, install piper-tts (`uv pip install piper-tts`) and set `tts.engine: piper`. otherwise TTS falls back to browser speechSynthesis
 
 ## how it works
 
