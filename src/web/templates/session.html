@@ -40,10 +40,16 @@
                 <input type="checkbox" id="tts-toggle" checked>
                 <span class="toggle-text">Speak Aloud</span>
             </label>
-            <label class="toggle-label" title="Floating ember particles">
-                <input type="checkbox" id="embers-toggle" checked>
+            <div class="ember-level" title="Floating ember particles">
                 <span class="toggle-text">Embers</span>
-            </label>
+                <button class="ember-btn" id="ember-minus" type="button">−</button>
+                <div class="ember-blocks" id="ember-blocks">
+                    <span class="ember-block filled" data-level="1"></span>
+                    <span class="ember-block" data-level="2"></span>
+                    <span class="ember-block" data-level="3"></span>
+                </div>
+                <button class="ember-btn" id="ember-plus" type="button">+</button>
+            </div>
             <label class="toggle-label" title="Kasina gazing mode">
                 <input type="checkbox" id="kasina-toggle">
                 <span class="toggle-text">Kasina</span>
@@ -57,11 +63,7 @@
     </div>
 </div>
 
-<div class="ember-container" id="ember-container">
-    <span class="ember"></span>
-    <span class="ember"></span>
-    <span class="ember"></span>
-</div>
+<div class="ember-container" id="ember-container"></div>
 
 <div class="session-ended-overlay" id="session-ended" style="display: none;">
     <div class="session-ended-content">

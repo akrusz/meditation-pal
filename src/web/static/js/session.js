@@ -18,7 +18,7 @@
     const endedOverlay = document.getElementById('session-ended');
     const closerText = document.getElementById('closer-text');
     const kasinaToggle = document.getElementById('kasina-toggle');
-    const embersToggle = document.getElementById('embers-toggle');
+    const emberBlocks = document.getElementById('ember-blocks');
     const emberContainer = document.getElementById('ember-container');
     const sessionContainer = document.querySelector('.session-container');
 
@@ -32,6 +32,7 @@
     let queuedSpeech = null;       // opener TTS queued until user gesture (mic permission)
     let orbDragging = false;        // true while dragging the kasina orb
     let orbMoved = false;           // true if mouse moved during drag (suppresses click-outside)
+    let emberLevel = 1;              // ember intensity: 0=off, 1/2/3=increasing
     let ttsRate = 160;             // speech rate in WPM — synced to server + browser TTS
     const synth = window.speechSynthesis || null;
     let preferredVoice = null;
@@ -104,6 +105,67 @@
     var BARGE_IN_CHUNKS = 3;       // consecutive chunks required (~280ms at 44.1kHz)
     var TRANSCRIPTION_TIMEOUT_MS = 15000; // warn if transcription takes too long
 
+    // ---- Ember configuration ----
+
+    var EMBER_COUNTS = [0, 3, 6, 12];
+    var EMBER_COLORS = ['#e8a840', '#d4873a', '#c07830', '#e0a038', '#cc8030'];
+    var EMBER_SHRINK_RATE = 0.3; // px/s — constant for all embers
+
+    function hexGlow(hex) {
+        return 'rgba(' + parseInt(hex.slice(1, 3), 16) + ','
+            + parseInt(hex.slice(3, 5), 16) + ','
+            + parseInt(hex.slice(5, 7), 16) + ',0.4)';
+    }
+
+    function setEmberLevel(level) {
+        emberLevel = level;
+        var blocks = emberBlocks.querySelectorAll('.ember-block');
+        for (var i = 0; i < blocks.length; i++) {
+            blocks[i].classList.toggle('filled', i < level);
+        }
+        regenerateEmbers();
+    }
+
+    function regenerateEmbers() {
+        emberContainer.innerHTML = '';
+        if (emberLevel === 0) {
+            emberContainer.classList.remove('active');
+            return;
+        }
+        emberContainer.classList.add('active');
+        var count = EMBER_COUNTS[emberLevel];
+        for (var i = 0; i < count; i++) {
+            var span = document.createElement('span');
+            span.className = 'ember';
+            var sizeRange = [0, 2, 3.5, 5][emberLevel];
+            var size = 2 + Math.random() * sizeRange;
+            var color = EMBER_COLORS[Math.floor(Math.random() * EMBER_COLORS.length)];
+            var glow = Math.round(3 + size);
+            span.style.left = (5 + Math.random() * 90) + '%';
+            span.style.width = size + 'px';
+            span.style.height = size + 'px';
+            span.style.background = color;
+            span.style.boxShadow = '0 0 ' + glow + 'px ' + Math.round(size * 0.4) + 'px ' + hexGlow(color);
+
+            var dur = 10 + Math.random() * 20; // 10–30s for speed variety
+            var drift = Math.round(-30 + Math.random() * 60);
+            var endScale = Math.max(0, 1 - EMBER_SHRINK_RATE * dur / size).toFixed(3);
+
+            span.animate([
+                { transform: 'translateY(0) translateX(0) scale(1)', opacity: 0, offset: 0 },
+                { transform: 'translateY(-5vh) translateX(' + Math.round(drift * 0.06) + 'px) scale(0.97)', opacity: 0.7, offset: 0.06 },
+                { transform: 'translateY(-95vh) translateX(' + drift + 'px) scale(' + endScale + ')', opacity: 0, offset: 1.0 },
+            ], {
+                duration: dur * 1000,
+                delay: Math.random() * dur * 1000,
+                iterations: Infinity,
+                easing: 'linear',
+            });
+
+            emberContainer.appendChild(span);
+        }
+    }
+
     // ---- Initialize ----
 
     function init() {
@@ -120,6 +182,15 @@
         speedSlider.addEventListener('input', function () {
             ttsRate = parseInt(speedSlider.value);
             socket.emit('set_tts_rate', { rate: ttsRate });
+        });
+
+        // Click orb in nav bar to enter kasina mode
+        orbEl.addEventListener('click', function (e) {
+            if (!kasinaToggle.checked && !orbDragging) {
+                e.stopPropagation();
+                kasinaToggle.checked = true;
+                kasinaToggle.dispatchEvent(new Event('change'));
+            }
         });
 
         kasinaToggle.addEventListener('change', function () {
@@ -204,8 +275,18 @@
             };
         });
 
-        embersToggle.addEventListener('change', function () {
-            emberContainer.classList.toggle('active', embersToggle.checked);
+        // Ember level controls
+        document.getElementById('ember-minus').addEventListener('click', function () {
+            setEmberLevel(Math.max(0, emberLevel - 1));
+        });
+        document.getElementById('ember-plus').addEventListener('click', function () {
+            setEmberLevel(Math.min(3, emberLevel + 1));
+        });
+        emberBlocks.addEventListener('click', function (e) {
+            var block = e.target.closest('.ember-block');
+            if (!block) return;
+            var clicked = parseInt(block.dataset.level);
+            setEmberLevel(clicked === emberLevel ? 0 : clicked);
         });
 
         // ---- Kasina drag + click-outside ----
@@ -282,10 +363,8 @@
             kasinaToggle.dispatchEvent(new Event('change'));
         });
 
-        // Sync initial toggle states
-        if (embersToggle.checked) {
-            emberContainer.classList.add('active');
-        }
+        // Initialize embers at default level
+        setEmberLevel(emberLevel);
 
         // Start session
         socket.emit('start_session', params);
@@ -829,9 +908,15 @@
     function updateTimer() {
         if (!sessionStart) return;
         var elapsed = Math.floor((Date.now() - sessionStart) / 1000);
-        var minutes = Math.floor(elapsed / 60);
+        var hours = Math.floor(elapsed / 3600);
+        var minutes = Math.floor((elapsed % 3600) / 60);
         var seconds = elapsed % 60;
-        timerEl.textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+        var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+        if (hours > 0) {
+            timerEl.textContent = hours + ':' + pad(minutes) + ':' + pad(seconds);
+        } else {
+            timerEl.textContent = minutes + ':' + pad(seconds);
+        }
     }
 
     // ---- End Session ----
