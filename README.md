@@ -46,8 +46,7 @@ once running, the server listens on port 5555:
 | key | action |
 |-----|--------|
 | **B** or **Space** | open in browser |
-| **Q** | quit |
-| **Ctrl+C** | quit |
+| **Q** or **Ctrl+C** | quit |
 
 ### platform notes
 
