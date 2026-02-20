@@ -6,7 +6,7 @@ this is a meditation facilitator that listens and responds to your voice. it run
 
 works on macos, linux, and windows. bring your own LLM - claude subscription via CLIProxyAPI, anthropic API key, openrouter for cheap non-claude models (deepseek, kimi), or local ollama
 
-![glooow screenshot](glooow1.png)
+![glooow screenshot](glooow-screen.png)
 
 ## what it does
 
