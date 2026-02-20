@@ -6,6 +6,8 @@ this is a meditation facilitator that listens and responds to your voice. it run
 
 works on macos, linux, and windows. bring your own LLM - claude subscription via CLIProxyAPI, anthropic API key, openrouter for cheap non-claude models (deepseek, kimi), or local ollama
 
+![glooow screenshot](glooow1.png)
+
 ## what it does
 
 you start a session, optionally set an intention, pick a facilitation style, and start talking. the facilitator listens, transcribes what you say with whisper, sends it to an LLM, and speaks the response back. it can hold silence when appropriate and gently check in if you've been quiet for a while
@@ -31,7 +33,25 @@ cd glooow
 
 the install script walks you through everything -- system deps, LLM provider choice, whisper model download. it writes your config to `config/default.yaml`
 
-`start.sh` handles the rest: starts CLIProxyAPI if needed, launches the web server on port 5555, and offers to open your browser. cleans up on ctrl-c
+`start.sh` handles the rest: starts CLIProxyAPI if needed and launches the web server on port 5555. press **B** to open the browser, **Q** to quit
+
+### running the server
+
+there are a few ways to start the web server:
+
+```bash
+./start.sh           # full launcher: auto-starts CLIProxyAPI, shows config banner
+./start-server.sh    # lightweight: just runs the server, nothing else
+uv run python -m src.web   # direct, same as start-server.sh
+```
+
+once running, the server shows keyboard shortcuts:
+
+| key | action |
+|-----|--------|
+| **B** or **Space** | open in browser |
+| **Q** | quit |
+| **Ctrl+C** | quit |
 
 ### windows
 
@@ -133,6 +153,7 @@ uses your mic directly via sounddevice and speaks responses through the system T
 - sessions auto-save to `sessions/` as JSON and plain text
 - say something like "hold on a bit" during a session to enter silence mode. say anything to come back - it understands intent
 - set an intention loosely or not at all. the facilitator holds it lightly
+- click the orb in the nav bar to enter kasina gazing mode. click away from it to exit
 
 ## project layout
 
@@ -147,6 +168,7 @@ src/
 config/         default.yaml
 sessions/       saved transcripts
 install.sh      first-time setup
-start.sh        launch script (macOS/linux)
-start.ps1       launch script (windows)
+start.sh        full launcher (macOS/linux) — auto-starts proxy, shows config
+start-server.sh lightweight launcher — just the web server
+start.ps1       full launcher (windows)
 ```

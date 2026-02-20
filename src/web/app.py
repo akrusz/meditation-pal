@@ -1,11 +1,13 @@
 """Flask web application for the meditation facilitator."""
 
+import atexit
 import asyncio
 import os
 import signal
 import sys
 import threading
 import time
+import webbrowser
 from pathlib import Path
 
 import httpx
@@ -518,14 +520,60 @@ def run_web(
 
     app, socketio = create_app(config)
 
-    print(f"\n  Ready: http://localhost:{port}")
-    print(f"  Press Ctrl+C to stop.\n")
+    url = f"http://localhost:{port}"
+    print(f"\n  Ready: {url}")
+    print(f"  B = open browser · Q = quit\n")
 
-    # Ensure Ctrl+C actually exits — threading mode can swallow KeyboardInterrupt
+    # Background thread: keyboard shortcuts while server runs
+    _saved_termios = [None]
+
+    def _restore_terminal():
+        if _saved_termios[0] is not None:
+            fd, old = _saved_termios[0]
+            try:
+                import termios as _t
+                _t.tcsetattr(fd, _t.TCSADRAIN, old)
+            except Exception:
+                pass
+
     def _shutdown(*_):
+        _restore_terminal()
         print("\n  Shutting down...", flush=True)
         sys.exit(0)
 
+    if sys.stdin.isatty():
+        atexit.register(_restore_terminal)
+
+        def _keyboard_listener():
+            try:
+                if sys.platform == "win32":
+                    import msvcrt
+                    while True:
+                        ch = msvcrt.getch()
+                        if ch in (b"b", b"B", b" "):
+                            print(f"  Opening {url} ...", flush=True)
+                            webbrowser.open(url)
+                        elif ch in (b"q", b"Q"):
+                            _shutdown()
+                else:
+                    import tty, termios
+                    fd = sys.stdin.fileno()
+                    old = termios.tcgetattr(fd)
+                    _saved_termios[0] = (fd, old)
+                    tty.setcbreak(fd)
+                    while True:
+                        ch = os.read(fd, 1)
+                        if ch in (b"b", b"B", b" "):
+                            print(f"  Opening {url} ...", flush=True)
+                            webbrowser.open(url)
+                        elif ch in (b"q", b"Q"):
+                            _shutdown()
+            except (OSError, ValueError, ImportError):
+                pass
+
+        threading.Thread(target=_keyboard_listener, daemon=True).start()
+
+    # Ensure Ctrl+C actually exits — threading mode can swallow KeyboardInterrupt
     signal.signal(signal.SIGINT, _shutdown)
 
     socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
