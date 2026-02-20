@@ -81,7 +81,7 @@ everything lives in `config/default.yaml`. the install script writes this for yo
 tts:
   engine: macos      # macos, piper, browser, elevenlabs, parakeet
   voice: "Zoe (Premium)"
-  rate: 160
+  rate: 120
 
 llm:
   provider: claude_proxy   # claude_proxy, anthropic, openrouter, openai, ollama
