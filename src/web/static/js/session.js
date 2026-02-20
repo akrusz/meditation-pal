@@ -30,6 +30,8 @@
     let sessionId = null;          // stable ID that survives socket reconnections
     let initialConnectDone = false; // distinguishes first connect from reconnects
     let queuedSpeech = null;       // opener TTS queued until user gesture (mic permission)
+    let orbDragging = false;        // true while dragging the kasina orb
+    let orbMoved = false;           // true if mouse moved during drag (suppresses click-outside)
     let ttsRate = 160;             // speech rate in WPM — synced to server + browser TTS
     const synth = window.speechSynthesis || null;
     let preferredVoice = null;
@@ -141,11 +143,28 @@
                 orbEl.classList.add('orb-kasina');
                 document.body.appendChild(orbEl);
                 sessionContainer.classList.add('kasina-active');
+                // Force dark mode for kasina (save current theme to restore later)
+                var currentTheme = document.documentElement.getAttribute('data-theme');
+                if (currentTheme !== 'dark') {
+                    kasinaToggle._prevTheme = currentTheme;
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
             } else {
                 orbEl.classList.remove('orb-kasina');
                 orbEl.classList.add('orb-breathing', 'orb-nav');
+                // Clear any drag positioning before moving back to nav
+                orbEl.style.left = '';
+                orbEl.style.top = '';
+                orbEl.style.inset = '';
+                orbEl.style.margin = '';
+                orbEl.style.cursor = '';
                 document.querySelector('.nav-session-info').prepend(orbEl);
                 sessionContainer.classList.remove('kasina-active');
+                // Restore previous theme
+                if (kasinaToggle._prevTheme) {
+                    document.documentElement.setAttribute('data-theme', kasinaToggle._prevTheme);
+                    kasinaToggle._prevTheme = null;
+                }
             }
 
             // Capture target visual state (new class applied, no animations)
@@ -187,6 +206,80 @@
 
         embersToggle.addEventListener('change', function () {
             emberContainer.classList.toggle('active', embersToggle.checked);
+        });
+
+        // ---- Kasina drag + click-outside ----
+
+        function startOrbDrag(clientX, clientY) {
+            if (!kasinaToggle.checked) return;
+            orbDragging = true;
+            orbMoved = false;
+
+            var rect = orbEl.getBoundingClientRect();
+
+            // Switch from inset centering to explicit left/top
+            orbEl.style.inset = 'auto';
+            orbEl.style.margin = '0';
+            orbEl.style.left = rect.left + 'px';
+            orbEl.style.top = rect.top + 'px';
+            orbEl.style.cursor = 'grabbing';
+
+            orbDragStartX = clientX - rect.left;
+            orbDragStartY = clientY - rect.top;
+        }
+
+        var orbDragStartX = 0, orbDragStartY = 0;
+
+        function moveOrbDrag(clientX, clientY) {
+            if (!orbDragging) return;
+            orbMoved = true;
+            orbEl.style.left = (clientX - orbDragStartX) + 'px';
+            orbEl.style.top = (clientY - orbDragStartY) + 'px';
+        }
+
+        function endOrbDrag() {
+            if (!orbDragging) return;
+            orbDragging = false;
+            orbEl.style.cursor = '';
+        }
+
+        // Mouse drag
+        orbEl.addEventListener('mousedown', function (e) {
+            if (!kasinaToggle.checked) return;
+            e.preventDefault();
+            startOrbDrag(e.clientX, e.clientY);
+        });
+        document.addEventListener('mousemove', function (e) { moveOrbDrag(e.clientX, e.clientY); });
+        document.addEventListener('mouseup', endOrbDrag);
+
+        // Touch drag
+        orbEl.addEventListener('touchstart', function (e) {
+            if (!kasinaToggle.checked) return;
+            e.preventDefault();
+            startOrbDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+        document.addEventListener('touchmove', function (e) {
+            if (orbDragging) moveOrbDrag(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        document.addEventListener('touchend', endOrbDrag);
+
+        // Click outside orb exits kasina mode
+        document.addEventListener('click', function (e) {
+            if (!kasinaToggle.checked || orbDragging) return;
+            // Suppress if the user just finished dragging
+            if (orbMoved) { orbMoved = false; return; }
+            // Don't exit if clicking on controls
+            if (e.target.closest('.input-area, .input-controls, .nav')) return;
+            // Check if click is near the orb (within glow radius)
+            var rect = orbEl.getBoundingClientRect();
+            var cx = rect.left + rect.width / 2;
+            var cy = rect.top + rect.height / 2;
+            var dx = e.clientX - cx;
+            var dy = e.clientY - cy;
+            if (Math.sqrt(dx * dx + dy * dy) < 100) return;
+            // Exit kasina mode
+            kasinaToggle.checked = false;
+            kasinaToggle.dispatchEvent(new Event('change'));
         });
 
         // Sync initial toggle states

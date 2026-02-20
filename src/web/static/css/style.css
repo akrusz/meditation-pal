@@ -919,6 +919,7 @@ body::before {
     width: 140px;
     height: 140px;
     z-index: 50;
+    cursor: grab;
     background: radial-gradient(circle at 45% 45%, #fffbe0, #ffc040, #e89030, #b05020);
     box-shadow:
         0 0 60px rgba(255, 192, 64, 0.3),
