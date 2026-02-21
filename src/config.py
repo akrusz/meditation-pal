@@ -69,7 +69,7 @@ class PacingConfig:
 class FacilitationConfig:
     directiveness: int = 3
     pleasant_emphasis: bool = True
-    verbosity: str = "low"
+    verbosity: str = "medium"
     custom_instructions: str = ""
 
 

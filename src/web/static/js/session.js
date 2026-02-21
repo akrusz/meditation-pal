@@ -12,6 +12,11 @@
     const ttsToggle = document.getElementById('tts-toggle');
     const endBtn = document.getElementById('end-btn');
     const speedSlider = document.getElementById('speed-slider');
+    const voicePickerBtn = document.getElementById('voice-picker-btn');
+    const voiceModal = document.getElementById('voice-modal');
+    const voiceModalList = document.getElementById('voice-modal-list');
+    const voiceModalClose = document.getElementById('voice-modal-close');
+    const modalSpeedSlider = document.getElementById('modal-speed-slider');
     const typingEl = document.getElementById('typing-indicator');
     const timerEl = document.getElementById('timer');
     const orbEl = document.getElementById('orb');
@@ -36,38 +41,193 @@
     let ttsRate = 160;             // speech rate in WPM — synced to server + browser TTS
     const synth = window.speechSynthesis || null;
     let preferredVoice = null;
+    let scoredVoices = [];         // [{voice, score}] — built by populateVoices
+    let previewUtterance = null;   // current SpeechSynthesisUtterance for preview
 
-    // Resolve preferred TTS voice once voices are loaded.
-    // macOS premium voices first, then Microsoft natural voices (Edge on Windows),
-    // then standard fallbacks.
-    var VOICE_PREFERENCES = [
-        'Zoe', 'Ava (Premium)', 'Samantha',       // macOS
-        'Microsoft Ava Online', 'Microsoft Jenny Online', 'Microsoft Guy Online',  // Edge/Windows
-        'Karen',                                    // fallback
-    ];
-
-    function resolveVoice() {
+    // Build scored voices array from browser speechSynthesis.
+    // Scores voices by quality heuristics so premium/natural voices sort first.
+    function populateVoices() {
         if (!synth) return;
         var voices = synth.getVoices();
         if (voices.length === 0) return;
-        console.log('Available TTS voices:', voices.map(function (v) { return v.name; }));
-        for (var i = 0; i < VOICE_PREFERENCES.length; i++) {
-            var name = VOICE_PREFERENCES[i];
-            var match = voices.find(function (v) {
-                return v.name.includes(name) && v.lang.startsWith('en');
-            });
-            if (match) {
-                preferredVoice = match;
-                console.log('Selected TTS voice:', match.name);
-                return;
+
+        var langPrefix = (navigator.language || 'en').split('-')[0];
+
+        // Score and filter voices
+        var scored = [];
+        for (var i = 0; i < voices.length; i++) {
+            var v = voices[i];
+            var vLang = (v.lang || '').split('-')[0];
+            if (vLang !== 'en' && vLang !== langPrefix) continue;
+
+            var score = 0;
+            if (/Premium|Enhanced/i.test(v.name)) score = 3;
+            if (/Online|Natural/i.test(v.name)) score = Math.max(score, 2);
+            if (!v.localService) score = Math.max(score, 2);
+            if (/^Google/i.test(v.name)) score = Math.max(score, 1);
+
+            scored.push({ voice: v, score: score });
+        }
+
+        // If 3+ high-quality voices available, drop the score-0 ones to reduce clutter
+        var aboveZero = scored.filter(function (s) { return s.score > 0; });
+        if (aboveZero.length >= 3) {
+            scored = aboveZero;
+        }
+
+        // Sort: highest score first, then alphabetically
+        scored.sort(function (a, b) {
+            if (b.score !== a.score) return b.score - a.score;
+            return a.voice.name.localeCompare(b.voice.name);
+        });
+
+        scoredVoices = scored;
+
+        // If no preferred voice yet, pick the top one
+        if (!preferredVoice && scored.length > 0) {
+            preferredVoice = scored[0].voice;
+        }
+
+        updateVoicePickerLabel();
+        console.log('Voices loaded:', scored.length, '. Selected:', preferredVoice ? preferredVoice.name : '(none)');
+    }
+
+    function updateVoicePickerLabel() {
+        if (preferredVoice) {
+            voicePickerBtn.textContent = preferredVoice.name;
+        } else {
+            voicePickerBtn.textContent = 'Voice';
+        }
+    }
+
+    var TIER_LABELS = { 3: 'Premium', 2: 'Quality', 1: 'Standard', 0: 'Other' };
+    var PREVIEW_PHRASE = 'Welcome to glow. I\'ll be your guide.';
+
+    function openVoiceModal() {
+        deactivateVoice();
+
+        modalSpeedSlider.value = speedSlider.value;
+        voiceModalList.innerHTML = '';
+
+        // Group by tier
+        var tiers = {};
+        for (var i = 0; i < scoredVoices.length; i++) {
+            var s = scoredVoices[i].score;
+            if (!tiers[s]) tiers[s] = [];
+            tiers[s].push(scoredVoices[i]);
+        }
+
+        // Render tiers in descending order
+        var tierOrder = [3, 2, 1, 0];
+        for (var t = 0; t < tierOrder.length; t++) {
+            var tier = tierOrder[t];
+            var items = tiers[tier];
+            if (!items || items.length === 0) continue;
+
+            var label = document.createElement('div');
+            label.className = 'voice-tier-label';
+            label.textContent = TIER_LABELS[tier];
+            voiceModalList.appendChild(label);
+
+            for (var i = 0; i < items.length; i++) {
+                var entry = items[i];
+                var row = document.createElement('div');
+                row.className = 'voice-row';
+                if (preferredVoice && entry.voice.name === preferredVoice.name) {
+                    row.classList.add('selected');
+                }
+                row.dataset.voiceName = entry.voice.name;
+
+                var nameSpan = document.createElement('span');
+                nameSpan.className = 'voice-row-name';
+                nameSpan.textContent = entry.voice.name;
+                row.appendChild(nameSpan);
+
+                if (preferredVoice && entry.voice.name === preferredVoice.name) {
+                    var check = document.createElement('span');
+                    check.className = 'voice-row-check';
+                    check.textContent = '\u2713';
+                    row.appendChild(check);
+                }
+
+                var previewBtn = document.createElement('button');
+                previewBtn.type = 'button';
+                previewBtn.className = 'voice-row-preview';
+                previewBtn.textContent = 'Preview';
+                previewBtn.dataset.voiceName = entry.voice.name;
+                row.appendChild(previewBtn);
+
+                voiceModalList.appendChild(row);
             }
         }
-        preferredVoice = voices.find(function (v) { return v.lang.startsWith('en'); }) || voices[0];
-        console.log('Fallback TTS voice:', preferredVoice.name);
+
+        voiceModal.style.display = 'flex';
     }
+
+    function closeVoiceModal(restoreMic) {
+        voiceModal.style.display = 'none';
+        stopPreview();
+        if (restoreMic) {
+            activateVoice();
+        }
+    }
+
+    function stopPreview() {
+        if (synth) synth.cancel();
+        previewUtterance = null;
+    }
+
+    function previewVoice(voiceName) {
+        stopPreview();
+        if (!synth) return;
+        var voices = synth.getVoices();
+        var voice = null;
+        for (var i = 0; i < voices.length; i++) {
+            if (voices[i].name === voiceName) { voice = voices[i]; break; }
+        }
+        if (!voice) return;
+
+        var phrase = voiceName === 'Zarvox' ? 'Come. On. Fahoogwuhgods.' : PREVIEW_PHRASE;
+        previewUtterance = new SpeechSynthesisUtterance(phrase);
+        previewUtterance.voice = voice;
+        previewUtterance.rate = ttsRate / 180;
+        previewUtterance.pitch = 0.85;
+        synth.speak(previewUtterance);
+    }
+
+    function selectVoice(voiceName) {
+        var voices = synth ? synth.getVoices() : [];
+        for (var i = 0; i < voices.length; i++) {
+            if (voices[i].name === voiceName) {
+                preferredVoice = voices[i];
+                break;
+            }
+        }
+        socket.emit('set_tts_voice', { voice: voiceName });
+        updateVoicePickerLabel();
+
+        // Update selected state in modal
+        var rows = voiceModalList.querySelectorAll('.voice-row');
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var isSelected = row.dataset.voiceName === voiceName;
+            row.classList.toggle('selected', isSelected);
+            // Update checkmark
+            var existingCheck = row.querySelector('.voice-row-check');
+            if (isSelected && !existingCheck) {
+                var check = document.createElement('span');
+                check.className = 'voice-row-check';
+                check.textContent = '\u2713';
+                row.insertBefore(check, row.querySelector('.voice-row-preview'));
+            } else if (!isSelected && existingCheck) {
+                existingCheck.remove();
+            }
+        }
+    }
+
     if (synth) {
-        resolveVoice();
-        synth.addEventListener('voiceschanged', resolveVoice);
+        populateVoices();
+        synth.addEventListener('voiceschanged', populateVoices);
     }
 
     // Audio capture state
@@ -181,7 +341,33 @@
         endBtn.addEventListener('click', endSession);
         speedSlider.addEventListener('input', function () {
             ttsRate = parseInt(speedSlider.value);
+            modalSpeedSlider.value = speedSlider.value;
             socket.emit('set_tts_rate', { rate: ttsRate });
+        });
+        modalSpeedSlider.addEventListener('input', function () {
+            ttsRate = parseInt(modalSpeedSlider.value);
+            speedSlider.value = modalSpeedSlider.value;
+            socket.emit('set_tts_rate', { rate: ttsRate });
+        });
+        voicePickerBtn.addEventListener('click', function () { openVoiceModal(); });
+        voiceModalClose.addEventListener('click', function () { closeVoiceModal(true); });
+        voiceModal.addEventListener('click', function (e) {
+            // Close on backdrop click (not on the modal itself)
+            if (e.target === voiceModal) closeVoiceModal(true);
+        });
+        voiceModalList.addEventListener('click', function (e) {
+            // Preview button
+            var previewBtn = e.target.closest('.voice-row-preview');
+            if (previewBtn) {
+                e.stopPropagation();
+                previewVoice(previewBtn.dataset.voiceName);
+                return;
+            }
+            // Voice row click — select that voice
+            var row = e.target.closest('.voice-row');
+            if (row) {
+                selectVoice(row.dataset.voiceName);
+            }
         });
 
         // Click orb in nav bar to enter kasina mode
@@ -839,7 +1025,7 @@
 
         var utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = ttsRate / 180;  // convert WPM to browser rate (180 WPM ≈ 1.0)
-        utterance.pitch = 0.95;
+        utterance.pitch = 0.85;
 
         if (preferredVoice) {
             utterance.voice = preferredVoice;

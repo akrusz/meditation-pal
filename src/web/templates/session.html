@@ -58,12 +58,31 @@
                 <label class="speed-label" for="speed-slider">Speed</label>
                 <input type="range" id="speed-slider" min="70" max="150" value="110" step="10">
             </div>
+            <div class="voice-control">
+                <button type="button" id="voice-picker-btn" class="voice-picker-btn">Voice</button>
+            </div>
             <button id="end-btn" class="btn btn-end">End Session</button>
         </div>
     </div>
 </div>
 
 <div class="ember-container" id="ember-container"></div>
+
+<div class="voice-modal-overlay" id="voice-modal" style="display: none;">
+    <div class="voice-modal">
+        <div class="voice-modal-header">
+            <span class="voice-modal-title">Choose Voice</span>
+            <button type="button" class="voice-modal-close" id="voice-modal-close">&times;</button>
+        </div>
+        <div class="voice-modal-list" id="voice-modal-list">
+            <!-- populated by JS -->
+        </div>
+        <div class="voice-modal-footer">
+            <label class="voice-modal-speed-label" for="modal-speed-slider">Speed</label>
+            <input type="range" id="modal-speed-slider" min="70" max="150" value="110" step="10">
+        </div>
+    </div>
+</div>
 
 <div class="session-ended-overlay" id="session-ended" style="display: none;">
     <div class="session-ended-content">
