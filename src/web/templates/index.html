@@ -155,17 +155,15 @@
 
         <div class="form-row">
             <div class="form-group form-group-half">
-                <label for="directiveness">
-                    Guidance Level
-                    <span class="range-value" id="directiveness-value">3</span>
-                </label>
+                <label for="directiveness">Guidance Level</label>
                 <input
                     type="range"
                     id="directiveness"
                     name="directiveness"
                     min="0"
-                    max="10"
-                    value="3"
+                    max="4"
+                    value="1"
+                    step="1"
                 >
                 <div class="range-labels">
                     <span>Following</span>
@@ -228,43 +226,46 @@
             focuses: ['body_sensations', 'emotions'],
             qualities: ['playful'],
             orient_pleasant: true,
-            directiveness: 3,
+            dirStep: 1,  // Light
         },
         parts_work: {
             focuses: ['inner_parts', 'emotions'],
             qualities: ['compassionate'],
             orient_pleasant: false,
-            directiveness: 3,
+            dirStep: 1,  // Light
         },
         compassion: {
             focuses: ['emotions', 'inner_parts'],
             qualities: ['compassionate'],
             orient_pleasant: false,
-            directiveness: 3,
+            dirStep: 1,  // Light
         },
         somatic: {
             focuses: ['body_sensations'],
             qualities: [],
             orient_pleasant: false,
-            directiveness: 5,
+            dirStep: 2,  // Balanced
         },
         freeform: {
             focuses: [],
             qualities: ['spacious', 'effortless'],
             orient_pleasant: false,
-            directiveness: 2,
+            dirStep: 1,  // Light
         },
         stillness: {
             focuses: [],
             qualities: ['spacious'],
             orient_pleasant: false,
-            directiveness: 0,
+            dirStep: 0,  // Following
         },
     };
 
     const dirSlider = document.getElementById('directiveness');
-    const dirValue = document.getElementById('directiveness-value');
     const orientPleasant = document.getElementById('orient_pleasant');
+
+    // Slider step → backend directiveness value
+    const dirValues = [0, 3, 5, 7, 10];
+    function dirBackendValue() { return dirValues[dirSlider.value]; }
 
     function applyPreset(name) {
         const p = presets[name];
@@ -287,8 +288,7 @@
         orientPleasant.closest('.modifier-toggle').classList.toggle('selected', p.orient_pleasant);
 
         // Directiveness
-        dirSlider.value = p.directiveness;
-        dirValue.textContent = p.directiveness;
+        dirSlider.value = p.dirStep;
     }
 
     // Preset card selection
@@ -315,7 +315,6 @@
     });
 
     dirSlider.addEventListener('input', () => {
-        dirValue.textContent = dirSlider.value;
         deselectPresets();
     });
 
@@ -420,7 +419,7 @@
             focuses: focuses,
             qualities: qualities,
             orient_pleasant: orientPleasant.checked,
-            directiveness: parseInt(dirSlider.value),
+            directiveness: dirBackendValue(),
             verbosity: document.getElementById('verbosity').value,
             custom_instructions: document.getElementById('custom_instructions').value,
             provider: providerSelect.value,
