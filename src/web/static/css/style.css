@@ -414,9 +414,13 @@ input[type="range"]::-moz-range-thumb {
 /* Modifier toggles */
 
 .modifier-toggles {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 0.4rem;
+}
+
+.modifier-toggles.single-col {
+    grid-template-columns: 1fr;
 }
 
 .modifier-toggle {

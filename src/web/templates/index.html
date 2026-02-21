@@ -26,48 +26,128 @@
         </div>
 
         <div class="form-group">
-            <label>Facilitation Style</label>
+            <label>Quick Start</label>
             <div class="style-cards">
-                <label class="style-card selected" data-style="pleasant_play">
-                    <input type="radio" name="style" value="pleasant_play" checked>
+                <label class="style-card selected" data-preset="pleasant_play">
+                    <input type="radio" name="preset" value="pleasant_play" checked>
                     <div class="style-card-inner">
                         <span class="style-name">Pleasant Play</span>
-                        <span class="style-desc">Playful exploration of pleasant sensations and natural absorption</span>
+                        <span class="style-desc">Playful exploration of pleasant sensations, natural absorption, jhana</span>
                     </div>
                 </label>
-                <label class="style-card" data-style="compassion">
-                    <input type="radio" name="style" value="compassion">
+                <label class="style-card" data-preset="compassion">
+                    <input type="radio" name="preset" value="compassion">
                     <div class="style-card-inner">
                         <span class="style-name">Compassion</span>
                         <span class="style-desc">Turning warmth inward toward parts that are suffering or working hard</span>
                     </div>
                 </label>
-                <label class="style-card" data-style="somatic">
-                    <input type="radio" name="style" value="somatic">
+                <label class="style-card" data-preset="parts_work">
+                    <input type="radio" name="preset" value="parts_work">
+                    <div class="style-card-inner">
+                        <span class="style-name">Parts Work</span>
+                        <span class="style-desc">Explore inner parts, speak to them, let them speak back</span>
+                    </div>
+                </label>
+                <label class="style-card" data-preset="somatic">
+                    <input type="radio" name="preset" value="somatic">
                     <div class="style-card-inner">
                         <span class="style-name">Somatic</span>
-                        <span class="style-desc">Body-focused exploration of sensation</span>
+                        <span class="style-desc">Body-focused exploration of sensation and physical experience</span>
                     </div>
                 </label>
-                <label class="style-card" data-style="adaptive">
-                    <input type="radio" name="style" value="adaptive">
+                <label class="style-card" data-preset="freeform">
+                    <input type="radio" name="preset" value="freeform">
                     <div class="style-card-inner">
-                        <span class="style-name">Adaptive</span>
-                        <span class="style-desc">Flow with whatever arises, orienting toward your intention</span>
+                        <span class="style-name">Freeform</span>
+                        <span class="style-desc">Spacious, effortless. Flow with whatever arises</span>
                     </div>
                 </label>
-                <label class="style-card" data-style="non_directive">
-                    <input type="radio" name="style" value="non_directive">
+                <label class="style-card" data-preset="stillness">
+                    <input type="radio" name="preset" value="stillness">
                     <div class="style-card-inner">
-                        <span class="style-name">Non-directive</span>
-                        <span class="style-desc">Pure presence and reflection, no guidance</span>
+                        <span class="style-name">Stillness</span>
+                        <span class="style-desc">Minimal guidance, holding space for whatever wants to happen</span>
                     </div>
                 </label>
-                <label class="style-card" data-style="open">
-                    <input type="radio" name="style" value="open">
-                    <div class="style-card-inner">
-                        <span class="style-name">Open</span>
-                        <span class="style-desc">Minimal facilitation, mostly holding space</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Attention Focus</label>
+            <div class="modifier-toggles">
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="focus" value="body_sensations">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Body & sensations</span>
+                        <span class="modifier-desc">Physical experience — texture, temperature, movement</span>
+                    </div>
+                </label>
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="focus" value="emotions">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Emotions & feeling tone</span>
+                        <span class="modifier-desc">Emotional landscape, warmth, what's alive underneath</span>
+                    </div>
+                </label>
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="focus" value="inner_parts">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Parts & inner world</span>
+                        <span class="modifier-desc">Inner parts, protectors, body parts as parts, speaking to/as parts</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Facilitator Quality</label>
+            <div class="modifier-toggles">
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="quality" value="playful">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Playful & light</span>
+                        <span class="modifier-desc">Play, spontaneity, delight. Doesn't have to be serious.</span>
+                    </div>
+                </label>
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="quality" value="compassionate">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Compassionate</span>
+                        <span class="modifier-desc">Meeting what arises with care, tenderness, gentleness</span>
+                    </div>
+                </label>
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="quality" value="loving">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Loving & kind</span>
+                        <span class="modifier-desc">Active lovingkindness, generating and radiating warmth</span>
+                    </div>
+                </label>
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="quality" value="spacious">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Spacious</span>
+                        <span class="modifier-desc">Notice the openness that's already here</span>
+                    </div>
+                </label>
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="quality" value="effortless">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Effortless</span>
+                        <span class="modifier-desc">Hands off the wheel, let things unfold</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="modifier-toggles single-col">
+                <label class="modifier-toggle">
+                    <input type="checkbox" name="orient_pleasant" id="orient_pleasant">
+                    <div class="modifier-info">
+                        <span class="modifier-name">Orient toward pleasant</span>
+                        <span class="modifier-desc">Gently steer toward pleasant experience. Pleasure is valid.</span>
                     </div>
                 </label>
             </div>
@@ -121,47 +201,6 @@
         </div>
         <div id="provider-hint" class="provider-hint" style="display:none"></div>
 
-        <div class="form-group">
-            <label>Orientation</label>
-            <div class="modifier-toggles">
-                <label class="modifier-toggle">
-                    <input type="checkbox" name="modifier" value="orient_pleasant">
-                    <div class="modifier-info">
-                        <span class="modifier-name">Orient toward pleasant</span>
-                        <span class="modifier-desc">Gently steer toward pleasant or neutral sensations.</span>
-                    </div>
-                </label>
-                <label class="modifier-toggle">
-                    <input type="checkbox" name="modifier" value="permission_to_enjoy">
-                    <div class="modifier-info">
-                        <span class="modifier-name">Permission to enjoy</span>
-                        <span class="modifier-desc">Pleasure is valid. Enjoyment is the practice.</span>
-                    </div>
-                </label>
-                <label class="modifier-toggle">
-                    <input type="checkbox" name="modifier" value="spaciousness">
-                    <div class="modifier-info">
-                        <span class="modifier-name">Spaciousness</span>
-                        <span class="modifier-desc">Notice the openness that's already here.</span>
-                    </div>
-                </label>
-                <label class="modifier-toggle">
-                    <input type="checkbox" name="modifier" value="effortless">
-                    <div class="modifier-info">
-                        <span class="modifier-name">Effortless</span>
-                        <span class="modifier-desc">Hands off the wheel, let things unfold.</span>
-                    </div>
-                </label>
-                <label class="modifier-toggle">
-                    <input type="checkbox" name="modifier" value="emotional_warmth">
-                    <div class="modifier-info">
-                        <span class="modifier-name">Emotional warmth</span>
-                        <span class="modifier-desc">Explore your emotional landscape. Permission to feel what's underneath.</span>
-                    </div>
-                </label>
-            </div>
-        </div>
-
         <details class="advanced-settings">
             <summary>Additional instructions</summary>
             <div class="form-group">
@@ -183,7 +222,107 @@
 
 {% block scripts %}
 <script>
-    // Provider → model mapping (ollama populated dynamically)
+    // ---- Presets ----
+    const presets = {
+        pleasant_play: {
+            focuses: ['body_sensations', 'emotions'],
+            qualities: ['playful'],
+            orient_pleasant: true,
+            directiveness: 3,
+        },
+        parts_work: {
+            focuses: ['inner_parts', 'emotions'],
+            qualities: ['compassionate'],
+            orient_pleasant: false,
+            directiveness: 3,
+        },
+        compassion: {
+            focuses: ['emotions', 'inner_parts'],
+            qualities: ['compassionate'],
+            orient_pleasant: false,
+            directiveness: 3,
+        },
+        somatic: {
+            focuses: ['body_sensations'],
+            qualities: [],
+            orient_pleasant: false,
+            directiveness: 5,
+        },
+        freeform: {
+            focuses: [],
+            qualities: ['spacious', 'effortless'],
+            orient_pleasant: false,
+            directiveness: 2,
+        },
+        stillness: {
+            focuses: [],
+            qualities: ['spacious'],
+            orient_pleasant: false,
+            directiveness: 0,
+        },
+    };
+
+    const dirSlider = document.getElementById('directiveness');
+    const dirValue = document.getElementById('directiveness-value');
+    const orientPleasant = document.getElementById('orient_pleasant');
+
+    function applyPreset(name) {
+        const p = presets[name];
+        if (!p) return;
+
+        // Set focus checkboxes
+        document.querySelectorAll('input[name="focus"]').forEach(cb => {
+            cb.checked = p.focuses.includes(cb.value);
+            cb.closest('.modifier-toggle').classList.toggle('selected', cb.checked);
+        });
+
+        // Set quality checkboxes
+        document.querySelectorAll('input[name="quality"]').forEach(cb => {
+            cb.checked = p.qualities.includes(cb.value);
+            cb.closest('.modifier-toggle').classList.toggle('selected', cb.checked);
+        });
+
+        // Orient pleasant
+        orientPleasant.checked = p.orient_pleasant;
+        orientPleasant.closest('.modifier-toggle').classList.toggle('selected', p.orient_pleasant);
+
+        // Directiveness
+        dirSlider.value = p.directiveness;
+        dirValue.textContent = p.directiveness;
+    }
+
+    // Preset card selection
+    document.querySelectorAll('.style-card').forEach(card => {
+        card.addEventListener('click', () => {
+            document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            const preset = card.dataset.preset;
+            if (preset) applyPreset(preset);
+        });
+    });
+
+    // When user manually changes checkboxes/slider, deselect preset cards
+    function deselectPresets() {
+        document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('input[name="preset"]').forEach(r => r.checked = false);
+    }
+
+    document.querySelectorAll('input[name="focus"], input[name="quality"], #orient_pleasant').forEach(cb => {
+        cb.addEventListener('change', () => {
+            cb.closest('.modifier-toggle').classList.toggle('selected', cb.checked);
+            deselectPresets();
+        });
+    });
+
+    dirSlider.addEventListener('input', () => {
+        dirValue.textContent = dirSlider.value;
+        deselectPresets();
+    });
+
+    // Apply default preset on load
+    applyPreset('pleasant_play');
+
+    // ---- Provider / Model ----
     const providerModels = {
         claude_proxy: [
             { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5' },
@@ -264,34 +403,24 @@
     providerSelect.addEventListener('change', updateModelOptions);
     updateModelOptions();
 
-    // Style card selection
-    document.querySelectorAll('.style-card').forEach(card => {
-        card.addEventListener('click', () => {
-            document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
-        });
-    });
-
-    // Range display
-    const dirSlider = document.getElementById('directiveness');
-    const dirValue = document.getElementById('directiveness-value');
-    dirSlider.addEventListener('input', () => {
-        dirValue.textContent = dirSlider.value;
-    });
-
-    // Form submit
+    // ---- Form submit ----
     document.getElementById('setup-form').addEventListener('submit', (e) => {
         e.preventDefault();
 
-        const modifiers = Array.from(
-            document.querySelectorAll('input[name="modifier"]:checked')
+        const focuses = Array.from(
+            document.querySelectorAll('input[name="focus"]:checked')
+        ).map(el => el.value);
+
+        const qualities = Array.from(
+            document.querySelectorAll('input[name="quality"]:checked')
         ).map(el => el.value);
 
         const params = {
             intention: document.getElementById('intention').value,
-            style: document.querySelector('input[name="style"]:checked').value,
+            focuses: focuses,
+            qualities: qualities,
+            orient_pleasant: orientPleasant.checked,
             directiveness: parseInt(dirSlider.value),
-            modifiers: modifiers,
             verbosity: document.getElementById('verbosity').value,
             custom_instructions: document.getElementById('custom_instructions').value,
             provider: providerSelect.value,

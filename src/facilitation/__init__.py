@@ -1,7 +1,7 @@
 """Facilitation logic for meditation sessions."""
 
 from .pacing import PacingController, ConversationState, TurnDecision
-from .prompts import PromptBuilder, FacilitationStyle
+from .prompts import PromptBuilder, PromptConfig
 from .session import SessionManager, SessionState, Exchange
 
 __all__ = [
@@ -9,7 +9,7 @@ __all__ = [
     "ConversationState",
     "TurnDecision",
     "PromptBuilder",
-    "FacilitationStyle",
+    "PromptConfig",
     "SessionManager",
     "SessionState",
     "Exchange",

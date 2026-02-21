@@ -18,7 +18,7 @@ from flask_socketio import SocketIO, emit
 from ..config import load_config, Config
 from ..llm.ollama import create_llm_provider
 from ..llm.base import Message
-from ..facilitation.prompts import PromptBuilder, PromptConfig, FacilitationStyle, parse_hold_signal
+from ..facilitation.prompts import PromptBuilder, PromptConfig, parse_hold_signal
 from ..facilitation.session import SessionManager
 from ..logging.transcript import TranscriptLogger
 from ..stt.whisper import WhisperSTT
@@ -32,9 +32,10 @@ class WebMeditationSession:
         self,
         config: Config,
         intention: str = "",
-        style: str = "pleasant_play",
+        focuses: list[str] | None = None,
+        qualities: list[str] | None = None,
+        orient_pleasant: bool = False,
         directiveness: int = 3,
-        modifiers: list[str] | None = None,
         verbosity: str = "low",
         custom_instructions: str = "",
         model: str | None = None,
@@ -46,22 +47,13 @@ class WebMeditationSession:
         self.tts_enabled = tts_enabled
         self.start_time = time.time()
 
-        # Map style string to enum
-        style_map = {
-            "pleasant_play": FacilitationStyle.PLEASANT_PLAY,
-            "non_directive": FacilitationStyle.NON_DIRECTIVE,
-            "somatic": FacilitationStyle.SOMATIC,
-            "open": FacilitationStyle.OPEN,
-            "adaptive": FacilitationStyle.ADAPTIVE,
-            "compassion": FacilitationStyle.COMPASSION,
-        }
-
         prompt_config = PromptConfig(
+            focuses=focuses or [],
+            qualities=qualities or [],
+            orient_pleasant=orient_pleasant,
             directiveness=directiveness,
-            modifiers=modifiers or [],
             verbosity=verbosity,
             custom_instructions=custom_instructions,
-            style=style_map.get(style),
         )
         self.prompts = PromptBuilder(prompt_config)
 
@@ -142,6 +134,49 @@ class WebMeditationSession:
         """End the session and return serialized data."""
         self.session.end_session()
         return self.session.to_dict()
+
+
+def _migrate_style(style: str, directiveness: int = 3) -> dict:
+    """Map a legacy style string to the new focuses/qualities/orient_pleasant params."""
+    presets = {
+        "pleasant_play": {
+            "focuses": ["body_sensations", "emotions"],
+            "qualities": ["playful"],
+            "orient_pleasant": True,
+            "directiveness": 3,
+        },
+        "compassion": {
+            "focuses": ["emotions", "inner_parts"],
+            "qualities": ["compassionate"],
+            "orient_pleasant": False,
+            "directiveness": 3,
+        },
+        "somatic": {
+            "focuses": ["body_sensations"],
+            "qualities": [],
+            "orient_pleasant": False,
+            "directiveness": 5,
+        },
+        "adaptive": {
+            "focuses": [],
+            "qualities": ["spacious", "effortless"],
+            "orient_pleasant": False,
+            "directiveness": directiveness,
+        },
+        "non_directive": {
+            "focuses": [],
+            "qualities": [],
+            "orient_pleasant": False,
+            "directiveness": 0,
+        },
+        "open": {
+            "focuses": [],
+            "qualities": ["spacious"],
+            "orient_pleasant": False,
+            "directiveness": 0,
+        },
+    }
+    return presets.get(style, presets["pleasant_play"])
 
 
 def create_app(config: Config | None = None) -> tuple[Flask, SocketIO]:
@@ -327,12 +362,21 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
 
         config = app.meditation_config
 
+        # Legacy migration: if old 'style' param received, map to presets
+        if data.get("style") and not data.get("focuses"):
+            migrated = _migrate_style(
+                data["style"],
+                data.get("directiveness", 3),
+            )
+            data.update(migrated)
+
         web_session = WebMeditationSession(
             config=config,
             intention=data.get("intention", ""),
-            style=data.get("style", "pleasant_play"),
+            focuses=data.get("focuses", []),
+            qualities=data.get("qualities", []),
+            orient_pleasant=data.get("orient_pleasant", False),
             directiveness=data.get("directiveness", 3),
-            modifiers=data.get("modifiers", []),
             verbosity=data.get("verbosity", "low"),
             custom_instructions=data.get("custom_instructions", ""),
             model=data.get("model"),
