@@ -263,11 +263,13 @@ class MeditationFacilitator:
         if clean_response:
             print(f"\nFacilitator: {clean_response}")
             self.session.add_assistant_message(clean_response)
-            await self.tts.speak(clean_response)
-            # Clear mic buffer and reset VAD so we don't process TTS audio as speech
-            self.audio_input.clear_buffer()
-            self.vad.reset()
-            self._audio_buffer = []
+            # Skip TTS for non-speakable responses (e.g. "." used as silence marker in Open style)
+            if any(c.isalpha() or c.isdigit() for c in clean_response):
+                await self.tts.speak(clean_response)
+                # Clear mic buffer and reset VAD so we don't process TTS audio as speech
+                self.audio_input.clear_buffer()
+                self.vad.reset()
+                self._audio_buffer = []
 
         if is_hold:
             self.pacing.enter_silence_mode()

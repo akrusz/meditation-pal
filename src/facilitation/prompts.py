@@ -284,6 +284,7 @@ Focus on body-based exploration:
 Minimal facilitation - mostly holding space.
 Speak only when the meditator seems to need acknowledgment.
 Long silences are welcome. You might go many minutes without speaking.
+You can simply respond with . to indicate silence.
 """,
     FacilitationStyle.COMPASSION: """
 You are facilitating a compassion meditation — turning warmth and care inward toward parts \
