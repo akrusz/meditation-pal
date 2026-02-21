@@ -11,13 +11,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ range(1000000) | random }}">
     <script>
     // Apply theme before paint to prevent flash.
-    // Priority: manual override (expires after 12h) > system preference > time of day.
+    // Priority: manual override (expires after 4h) > system preference > time of day.
     (function() {
+        var THEME_TTL = 4 * 60 * 60 * 1000;
         var raw = localStorage.getItem('theme');
         if (raw) {
             try {
                 var parsed = JSON.parse(raw);
-                if (parsed.value && parsed.ts && (Date.now() - parsed.ts < 12 * 60 * 60 * 1000)) {
+                if (parsed.value && parsed.ts && (Date.now() - parsed.ts < THEME_TTL)) {
                     document.documentElement.setAttribute('data-theme', parsed.value);
                     return;
                 }
@@ -57,6 +58,7 @@
     {% block scripts %}{% endblock %}
     <script>
     (function() {
+        var THEME_TTL = 4 * 60 * 60 * 1000;
         var btn = document.getElementById('themeToggle');
         function updateIcon() {
             var theme = document.documentElement.getAttribute('data-theme');
@@ -80,7 +82,7 @@
                 if (raw) {
                     try {
                         var parsed = JSON.parse(raw);
-                        hasOverride = parsed.ts && (Date.now() - parsed.ts < 12 * 60 * 60 * 1000);
+                        hasOverride = parsed.ts && (Date.now() - parsed.ts < THEME_TTL);
                     } catch(ex) {}
                 }
                 if (!hasOverride) {
