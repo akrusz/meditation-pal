@@ -10,9 +10,9 @@ works on macos, linux, and windows. bring your own LLM - claude subscription via
 
 ## what it does
 
-you start a session, optionally set an intention, pick a facilitation style, and start talking. the facilitator listens, transcribes what you say with whisper, sends it to an LLM, and speaks the response back. it can hold silence when appropriate and gently check in if you've been quiet for a while
+you start a session, optionally set an intention, pick a preset or build your own combo, and start talking. the facilitator listens, transcribes what you say with whisper, sends it to an LLM, and speaks the response back. it can hold silence when appropriate and gently check in if you've been quiet for a while
 
-facilitation styles range from open-ended ("what do you notice?") to somatic-focused to fully adaptive. there's a directiveness slider so you can dial in how much guidance you want
+instead of fixed styles, you mix and match **attention focuses** (body, emotions, parts work) with **facilitator qualities** (playful, compassionate, loving, spacious, effortless) and an optional pleasant orientation. presets give you quick starting points, then you can adjust anything. there's a directiveness slider so you can dial in how much guidance you want
 
 ## getting started
 
@@ -73,18 +73,28 @@ the flake automatically sets up all dependencies including portaudio, ffmpeg, an
 - **LLM** -- claude via CLIProxyAPI or anthropic API, openrouter (deepseek, kimi, etc.), openai, or local ollama
 - **TTS** -- macos `say` command on mac, browser speechSynthesis on linux/windows. piper-tts is an option if you want better quality server-side audio on linux
 
-## facilitation styles
+## presets
 
-pick one in the web UI before starting:
+quick-start presets pre-fill the focus/quality checkboxes, then you can adjust anything:
 
-| style | vibe |
+| preset | what it does |
 |---|---|
-| **pleasant play** | playful exploration of pleasant sensations. understands jhana factors. encourages letting go and enjoying what's here |
-| **adaptive** | flows with whatever arises, no fixed framework |
-| **non-directive** | pure presence. reflects and asks "what's here now?" |
-| **somatic** | body-focused -- texture, temperature, movement, density |
-| **open** | minimal facilitation. holds space. long silences welcome |
-| **compassion** | inner compassion and parts work. notices parts that are suffering or working hard, invites care and curiosity toward them |
+| **pleasant play** | playful exploration of pleasant sensations, natural absorption, jhana |
+| **compassion** | turning warmth inward toward parts that are suffering or working hard |
+| **parts work** | explore inner parts, speak to them, let them speak back |
+| **somatic** | body-focused — texture, temperature, movement, density |
+| **freeform** | spacious, effortless. flow with whatever arises |
+| **stillness** | minimal guidance, holding space for whatever wants to happen |
+
+### dimensions
+
+**attention focuses** — where to direct attention (0 or more, defaults to open awareness if none selected):
+- body & sensations, emotions & feeling tone, parts & inner world
+
+**facilitator qualities** — tone overlays (0 or more):
+- playful & light, compassionate, loving & kind, spacious, effortless
+
+**orient toward pleasant** — gently steer toward pleasant experience. pleasure is valid
 
 ## configuration
 
@@ -101,8 +111,11 @@ llm:
   model: claude-sonnet-4-5-20250929
 
 facilitation:
-  directiveness: 3   # 0-10 scale
-  verbosity: low     # low, medium, high
+  directiveness: 3       # 0-10 scale
+  focuses: []            # body_sensations, emotions, inner_parts
+  qualities: []          # playful, compassionate, loving, spacious, effortless
+  orient_pleasant: false
+  verbosity: medium      # low, medium, high
 
 stt:
   model: small       # tiny, base, small, medium, large
