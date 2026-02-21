@@ -83,9 +83,16 @@
 
         scoredVoices = scored;
 
-        // If no preferred voice yet, pick the top one
+        // Restore saved voice, or default to the top one
         if (!preferredVoice && scored.length > 0) {
-            preferredVoice = scored[0].voice;
+            var savedVoice = localStorage.getItem('glooow-voice');
+            var found = null;
+            if (savedVoice) {
+                for (var i = 0; i < scored.length; i++) {
+                    if (scored[i].voice.name === savedVoice) { found = scored[i].voice; break; }
+                }
+            }
+            preferredVoice = found || scored[0].voice;
         }
 
         updateVoicePickerLabel();
@@ -204,6 +211,7 @@
             }
         }
         socket.emit('set_tts_voice', { voice: voiceName });
+        localStorage.setItem('glooow-voice', voiceName);
         updateVoicePickerLabel();
 
         // Update selected state in modal
@@ -339,14 +347,24 @@
         // Event listeners
         voiceBtn.addEventListener('click', toggleVoice);
         endBtn.addEventListener('click', endSession);
+        // Restore saved speed
+        var savedSpeed = localStorage.getItem('glooow-speed');
+        if (savedSpeed) {
+            speedSlider.value = savedSpeed;
+            modalSpeedSlider.value = savedSpeed;
+            ttsRate = parseInt(savedSpeed);
+        }
+
         speedSlider.addEventListener('input', function () {
             ttsRate = parseInt(speedSlider.value);
             modalSpeedSlider.value = speedSlider.value;
+            localStorage.setItem('glooow-speed', speedSlider.value);
             socket.emit('set_tts_rate', { rate: ttsRate });
         });
         modalSpeedSlider.addEventListener('input', function () {
             ttsRate = parseInt(modalSpeedSlider.value);
             speedSlider.value = modalSpeedSlider.value;
+            localStorage.setItem('glooow-speed', modalSpeedSlider.value);
             socket.emit('set_tts_rate', { rate: ttsRate });
         });
         voicePickerBtn.addEventListener('click', function () { openVoiceModal(); });
