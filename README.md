@@ -94,7 +94,7 @@ quick-start presets pre-fill the focus/quality checkboxes, then you can adjust a
 **facilitator qualities** — tone overlays (0 or more):
 - playful & light, compassionate, loving & kind, spacious, effortless
 
-**orient toward pleasant** — gently steer toward pleasant experience. pleasure is valid
+**orient toward pleasant** — gently steer toward pleasant experience and enjoyment
 
 ## configuration
 
