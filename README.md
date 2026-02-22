@@ -80,7 +80,7 @@ quick-start presets pre-fill the focus/quality checkboxes, then you can adjust a
 | preset | what it does |
 |---|---|
 | **pleasant play** | playful exploration of pleasant sensations, natural absorption, jhana |
-| **compassion** | turning warmth inward toward parts that are suffering or working hard |
+| **warmth & goodwill** | orienting toward warm feelings for yourself and others |
 | **parts work** | explore inner parts, speak to them, let them speak back |
 | **somatic** | body-focused — texture, temperature, movement, density |
 | **freeform** | spacious, effortless. flow with whatever arises |
