@@ -1017,6 +1017,13 @@
         setStatus("Speak naturally, or say 'mute' to turn off mic");
     }
 
+    function isHoldCommand(text) {
+        // Recognise short hold/wait phrases so they can be forwarded to
+        // the LLM even from command-candidate transcriptions.
+        var lower = text.toLowerCase();
+        return /\b(hold|wait|one moment|one sec|hang on|just a)\b/.test(lower);
+    }
+
     function submitCommandCandidate() {
         // Submit a short utterance that the VAD would normally reject as
         // noise.  We send it for transcription tagged as command-only so
@@ -1233,10 +1240,14 @@
                 deactivateVoice();
                 return;
             }
-            // Command-only transcriptions are discarded if they didn't
+            // Command-only transcriptions are discarded unless they
             // match a recognised command — they were too short for normal
-            // speech and only sent speculatively.
-            if (commandOnly) return;
+            // speech and only sent speculatively.  Hold/wait phrases are
+            // forwarded so the LLM can trigger silence mode.
+            if (commandOnly) {
+                if (isHoldCommand(text)) sendText(text);
+                return;
+            }
             sendText(text);
         }
     });
