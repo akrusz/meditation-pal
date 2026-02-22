@@ -1091,6 +1091,15 @@ body:has(.session-container) {
     animation: breatheNav 6s ease-in-out infinite, orbFlicker 3.7s ease-in-out infinite;
 }
 
+.orb-holding {
+    filter: saturate(0.3);
+    transition: filter 3s ease;
+}
+
+.orb-holding.orb-breathing {
+    animation: breathe 10s ease-in-out infinite;
+}
+
 @keyframes breathe {
     0%, 100% {
         transform: scale(0.92);

@@ -691,10 +691,13 @@
     });
 
     socket.on('silence_mode', function (data) {
+        var orb = document.getElementById('orb');
         if (data.active) {
             setStatus('Holding space... speak when ready');
+            if (orb && !kasinaToggle.checked) orb.classList.add('orb-holding');
         } else {
             setStatus('Listening... speak naturally');
+            if (orb) orb.classList.remove('orb-holding');
         }
     });
 

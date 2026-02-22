@@ -199,9 +199,10 @@
 
             facilitation:
               directiveness: 3
-              pleasant_emphasis: true
+              focuses: []
+              qualities: []
+              orient_pleasant: false
               verbosity: low
-              style: pleasant_play
               custom_instructions: |
                 Feel free to suggest releasing the need to pay attention to anything specific.
                 Trust the meditator's process.
