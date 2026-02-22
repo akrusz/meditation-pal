@@ -696,7 +696,7 @@
             setStatus('Holding space... speak when ready');
             if (orb && !kasinaToggle.checked) orb.classList.add('orb-holding');
         } else {
-            setStatus('Listening... speak naturally');
+            setStatus("Speak naturally, or say 'pause' to mute mic");
             if (orb) orb.classList.remove('orb-holding');
         }
     });
@@ -930,7 +930,7 @@
         pendingTranscriptions = 0;
         bargeInCount = 0;
 
-        setStatus('Listening... speak naturally');
+        setStatus("Speak naturally, or say 'pause' to mute mic");
     }
 
     function submitUtterance() {
@@ -1025,6 +1025,12 @@
             '(' + pendingTranscriptions + ' still pending)');
 
         if (text) {
+            // Voice command: "pause" or "mute" disables the microphone
+            var lower = text.toLowerCase().replace(/[^a-z]/g, '');
+            if (lower === 'pause' || lower === 'mute') {
+                deactivateVoice();
+                return;
+            }
             sendText(text);
         }
     });

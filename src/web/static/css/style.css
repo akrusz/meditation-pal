@@ -1071,12 +1071,26 @@ body:has(.session-container) {
    Orb (breathing animation)
    ============================================ */
 
+@property --orb-saturation {
+    syntax: '<number>';
+    initial-value: 1;
+    inherits: false;
+}
+
+@property --orb-brightness {
+    syntax: '<number>';
+    initial-value: 1;
+    inherits: false;
+}
+
 .orb {
     width: 48px;
     height: 48px;
     border-radius: 50%;
     background: radial-gradient(circle at 40% 40%, #f0b030, #e08020, #b84818);
     box-shadow: 0 0 30px var(--accent-glow), 0 0 60px rgba(212, 135, 58, 0.1);
+    filter: saturate(var(--orb-saturation)) brightness(var(--orb-brightness));
+    transition: --orb-saturation 3s ease;
 }
 
 .orb-idle {
@@ -1092,8 +1106,7 @@ body:has(.session-container) {
 }
 
 .orb-holding {
-    filter: saturate(0.3);
-    transition: filter 3s ease;
+    --orb-saturation: 0.3;
 }
 
 .orb-holding.orb-breathing {
@@ -1146,9 +1159,9 @@ body::before {
 
 /* Organic flicker — layered with breathe to break the perfect sine wave */
 @keyframes orbFlicker {
-    0%, 100% { filter: brightness(1); }
-    30% { filter: brightness(1.1); }
-    70% { filter: brightness(0.92); }
+    0%, 100% { --orb-brightness: 1; }
+    30% { --orb-brightness: 1.1; }
+    70% { --orb-brightness: 0.92; }
 }
 
 /* ============================================
