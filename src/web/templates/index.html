@@ -32,14 +32,14 @@
                     <input type="radio" name="preset" value="pleasant_play" checked>
                     <div class="style-card-inner">
                         <span class="style-name">Pleasant Play</span>
-                        <span class="style-desc">Playful exploration of pleasant sensations, natural absorption, jhana</span>
+                        <span class="style-desc">Playful exploration of pleasant sensations, emotions, jhana factors</span>
                     </div>
                 </label>
-                <label class="style-card" data-preset="compassion">
-                    <input type="radio" name="preset" value="compassion">
+                <label class="style-card" data-preset="warmth_goodwill">
+                    <input type="radio" name="preset" value="warmth_goodwill">
                     <div class="style-card-inner">
-                        <span class="style-name">Compassion</span>
-                        <span class="style-desc">Turning warmth inward toward parts that are suffering or working hard</span>
+                        <span class="style-name">Warmth & Goodwill</span>
+                        <span class="style-desc">Generating warmth and sending it to yourself and others</span>
                     </div>
                 </label>
                 <label class="style-card" data-preset="parts_work">
@@ -147,7 +147,7 @@
                     <input type="checkbox" name="orient_pleasant" id="orient_pleasant">
                     <div class="modifier-info">
                         <span class="modifier-name">Orient toward pleasant</span>
-                        <span class="modifier-desc">Gently steer toward pleasant experience. Pleasure is valid.</span>
+                        <span class="modifier-desc">Gently steer toward pleasant experience. It's good to feel good.</span>
                     </div>
                 </label>
             </div>
@@ -234,11 +234,11 @@
             orient_pleasant: false,
             dirStep: 1,  // Light
         },
-        compassion: {
-            focuses: ['emotions', 'inner_parts'],
-            qualities: ['compassionate'],
-            orient_pleasant: false,
-            dirStep: 1,  // Light
+        warmth_goodwill: {
+            focuses: ['emotions'],
+            qualities: ['loving'],
+            orient_pleasant: true,
+            dirStep: 2,  // Balanced
         },
         somatic: {
             focuses: ['body_sensations'],
