@@ -535,7 +535,7 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
 def run_web(
     config_path: str | None = None,
     host: str = "0.0.0.0",
-    port: int = 5555,
+    port: int = 4649,  # よろしく
     debug: bool = False,
 ) -> None:
     """Run the web application."""

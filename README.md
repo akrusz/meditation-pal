@@ -41,7 +41,7 @@ on windows, use `.\start.ps1` instead of `./start.sh`. if you need to install uv
 uv run python -m src.web   # direct, same as start-server.sh
 ```
 
-once running, the server listens on port 5555:
+once running, the server listens on port 4649 (よろしく):
 
 | key | action |
 |-----|--------|
