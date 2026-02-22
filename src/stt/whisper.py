@@ -130,29 +130,16 @@ class WhisperSTT:
         duration: float,
     ) -> TranscriptionResult:
         """Transcribe using standard Whisper."""
-        # Pad/trim to 30 seconds as Whisper expects
-        audio = self._whisper_module.pad_or_trim(audio)
-
-        # Make log-Mel spectrogram
-        mel = self._whisper_module.log_mel_spectrogram(audio).to(self._model.device)
-
-        # Detect language if not specified
-        language = self.language
-        if language is None:
-            _, probs = self._model.detect_language(mel)
-            language = max(probs, key=probs.get)
-
-        # Decode
-        options = self._whisper_module.DecodingOptions(
-            language=language,
-            fp16=False,  # Use fp32 for stability
+        result = self._model.transcribe(
+            audio,
+            language=self.language,
+            fp16=False,
         )
-        result = self._whisper_module.decode(self._model, mel, options)
 
         return TranscriptionResult(
-            text=result.text.strip(),
-            language=language,
-            confidence=None,  # Whisper doesn't provide confidence directly
+            text=result["text"].strip(),
+            language=result.get("language"),
+            confidence=None,
             duration=duration,
         )
 

@@ -486,9 +486,14 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
         try:
             audio_bytes = data.get("audio")
             sample_rate = data.get("sample_rate", 16000)
+            command_only = data.get("command_only", False)
+            speculative_gen = data.get("speculative_gen")  # None for normal, int for speculative
             audio = np.frombuffer(audio_bytes, dtype=np.float32)
             duration = len(audio) / sample_rate
-            print(f"  [STT] Received {len(audio)} samples @ {sample_rate}Hz ({duration:.1f}s)", flush=True)
+            label = " (command candidate)" if command_only else ""
+            if speculative_gen is not None:
+                label = f" (speculative gen {speculative_gen})"
+            print(f"  [STT] Received {len(audio)} samples @ {sample_rate}Hz ({duration:.1f}s){label}", flush=True)
         except Exception as e:
             print(f"  [STT] Error parsing audio: {e}", flush=True)
             emit("transcription", {"text": "", "error": str(e)})
@@ -520,7 +525,10 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
                 # (may have changed due to reconnection during transcription).
                 target_sid = app.session_to_sid.get(session_id)
                 if target_sid:
-                    socketio.emit("transcription", {"text": text}, to=target_sid)
+                    resp = {"text": text, "command_only": command_only}
+                    if speculative_gen is not None:
+                        resp["speculative_gen"] = speculative_gen
+                    socketio.emit("transcription", resp, to=target_sid)
                 else:
                     print("  [STT] No active socket for session, dropping result", flush=True)
             except Exception as e:

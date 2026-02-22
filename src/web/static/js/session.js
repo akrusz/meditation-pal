@@ -261,8 +261,17 @@
     let noiseSamples = 0;          // count for EMA alpha selection
     let bargeInCount = 0;          // consecutive high-energy chunks during TTS
 
+    // Speculative transcription: pre-send audio at base silence so the
+    // result is ready when the adaptive threshold is reached.
+    let speculativeGen = 0;        // generation counter — incremented to invalidate stale results
+    let speculativeSent = false;   // have we sent speculative audio for the current utterance?
+    let speculativeText = null;    // transcription text if result arrived before threshold
+    let awaitingSpeculative = false; // adaptive threshold reached, waiting for result
+
     var SILENCE_THRESHOLD = 0.015; // RMS level below which counts as silence
-    var SILENCE_DURATION = 3000;   // ms of silence before auto-submitting
+    var SILENCE_DURATION = 3000;   // ms of silence before auto-submitting (base)
+    var SILENCE_DURATION_MAX = 7000; // ms — cap for adaptive silence tolerance
+    var SILENCE_RAMP_RATE = 0.12;  // extra silence ms per ms of speech (ramps from base to max)
     var PRE_BUFFER_CHUNKS = 20;    // ~2s of audio to keep before speech onset
     var MIN_SPEECH_DURATION = 500; // ms — reject sounds shorter than this
     var MIN_UTTERANCE_DURATION = 4000; // ms — don't submit until this long after speech onset
@@ -403,6 +412,7 @@
             var startOpacity = cs.opacity;
             var startFilter = cs.filter;
             var startBoxShadow = cs.boxShadow;
+            var startBackground = cs.background;
 
             // FIRST — snapshot current orb position
             var first = orbEl.getBoundingClientRect();
@@ -442,9 +452,23 @@
                 }
             }
 
-            // Capture target visual state (new class applied, no animations)
+            // Capture target visual state with animation at 0% for seamless handoff.
+            // Temporarily enable CSS animation so getComputedStyle reflects the
+            // 0% keyframe values (opacity, scale, box-shadow, etc.).
+            orbEl.style.animation = '';
             var cs2 = getComputedStyle(orbEl);
+            var endOpacity = cs2.opacity;
+            var endFilter = cs2.filter;
             var endBoxShadow = cs2.boxShadow;
+            var endBackground = cs2.background;
+            // Extract animation-applied scale for the end transform
+            var endMatrix = cs2.transform;
+            var endScale = 1;
+            if (endMatrix && endMatrix !== 'none') {
+                var m = endMatrix.match(/matrix\(([^,]+)/);
+                if (m) endScale = parseFloat(m[1]);
+            }
+            orbEl.style.animation = 'none';
 
             // LAST — snapshot new position
             var last = orbEl.getBoundingClientRect();
@@ -454,28 +478,38 @@
             var dy = first.top + first.height / 2 - (last.top + last.height / 2);
             var scale = first.width / last.width;
 
-            // PLAY — animate from old position/appearance to new
+            // PLAY — animate from old position/appearance to new.
+            // End values match the CSS animation's 0% keyframe so the
+            // handoff is seamless when we re-enable animations.
             var anim = orbEl.animate([
                 {
                     transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + scale + ')',
                     opacity: startOpacity,
                     filter: startFilter,
-                    boxShadow: startBoxShadow
+                    boxShadow: startBoxShadow,
+                    background: startBackground
                 },
                 {
-                    transform: 'translate(0, 0) scale(1)',
-                    opacity: 1,
-                    filter: 'brightness(1)',
-                    boxShadow: endBoxShadow
+                    transform: 'translate(0, 0) scale(' + endScale + ')',
+                    opacity: endOpacity,
+                    filter: endFilter,
+                    boxShadow: endBoxShadow,
+                    background: endBackground
                 }
             ], {
                 duration: 600,
-                easing: 'ease-in-out'
+                easing: 'ease-in-out',
+                fill: 'forwards'
             });
 
-            // Re-enable CSS animations once the transition finishes
+            // Re-enable CSS animations once the transition finishes.
+            // fill:forwards holds the FLIP end values (which match animation 0%)
+            // until the CSS animation takes over, preventing any flash.
             anim.onfinish = function () {
                 orbEl.style.animation = '';
+                requestAnimationFrame(function () {
+                    anim.cancel();
+                });
             };
         });
 
@@ -696,7 +730,7 @@
             setStatus('Holding space... speak when ready');
             if (orb && !kasinaToggle.checked) orb.classList.add('orb-holding');
         } else {
-            setStatus("Speak naturally, or say 'pause' to mute mic");
+            setStatus("Speak naturally, or say 'mute' to turn off mic");
             if (orb) orb.classList.remove('orb-holding');
         }
     });
@@ -871,9 +905,11 @@
                     } else {
                         // Short silence — noise reject if too long
                         if (now - lastSpeechTime > NOISE_REJECT_MS) {
-                            // Was just a noise spike, discard
+                            // Too short for normal speech, but may be a
+                            // voice command like "mute" — send for
+                            // command-only transcription before discarding.
+                            submitCommandCandidate();
                             vadState = 'silence';
-                            audioChunks = [];
                             speechStartTime = 0;
                             lastSpeechTime = 0;
                         }
@@ -882,10 +918,55 @@
                     audioChunks.push(chunk);
                     if (isSpeech) {
                         lastSpeechTime = now;
+                        // User resumed speaking — invalidate any speculative
+                        if (speculativeSent) {
+                            speculativeGen++;
+                            speculativeSent = false;
+                            speculativeText = null;
+                        }
                     } else {
-                        if (now - lastSpeechTime >= SILENCE_DURATION &&
+                        // Adaptive silence: the longer the user has been
+                        // speaking, the more patience for thinking pauses.
+                        var speechDur = lastSpeechTime - speechStartTime;
+                        var silenceNeeded = Math.min(
+                            SILENCE_DURATION + speechDur * SILENCE_RAMP_RATE,
+                            SILENCE_DURATION_MAX
+                        );
+                        var silenceElapsed = now - lastSpeechTime;
+
+                        // At base silence, pre-send audio for transcription
+                        // so the result is ready when adaptive threshold hits.
+                        if (!speculativeSent &&
+                            silenceNeeded > SILENCE_DURATION &&
+                            silenceElapsed >= SILENCE_DURATION &&
                             now - speechStartTime >= MIN_UTTERANCE_DURATION) {
-                            submitUtterance();
+                            submitSpeculative();
+                        }
+
+                        if (silenceElapsed >= silenceNeeded) {
+                            if (now - speechStartTime >= MIN_UTTERANCE_DURATION) {
+                                if (speculativeText !== null) {
+                                    // Transcription already back — use it
+                                    finalizeSpeculative();
+                                } else if (speculativeSent) {
+                                    // Sent but not back yet — wait for it
+                                    awaitingSpeculative = true;
+                                    vadState = 'silence';
+                                    audioChunks = [];
+                                    speechStartTime = 0;
+                                    lastSpeechTime = 0;
+                                    speculativeSent = false;
+                                } else {
+                                    // Short speech or no ramp — normal submit
+                                    submitUtterance();
+                                }
+                            } else {
+                                // Short utterance — submit as command candidate
+                                submitCommandCandidate();
+                                vadState = 'silence';
+                                speechStartTime = 0;
+                                lastSpeechTime = 0;
+                            }
                         }
                     }
                 }
@@ -929,8 +1010,104 @@
         noiseSamples = 0;
         pendingTranscriptions = 0;
         bargeInCount = 0;
+        speculativeSent = false;
+        speculativeText = null;
+        awaitingSpeculative = false;
 
-        setStatus("Speak naturally, or say 'pause' to mute mic");
+        setStatus("Speak naturally, or say 'mute' to turn off mic");
+    }
+
+    function submitCommandCandidate() {
+        // Submit a short utterance that the VAD would normally reject as
+        // noise.  We send it for transcription tagged as command-only so
+        // that the transcription handler can act on "mute" but
+        // silently discard anything that isn't a recognised command.
+        var chunks = audioChunks;
+        audioChunks = [];
+
+        if (chunks.length === 0) return;
+
+        var totalLength = 0;
+        for (var i = 0; i < chunks.length; i++) {
+            totalLength += chunks[i].length;
+        }
+        var combined = new Float32Array(totalLength);
+        var offset = 0;
+        for (var i = 0; i < chunks.length; i++) {
+            combined.set(chunks[i], offset);
+            offset += chunks[i].length;
+        }
+
+        var nativeSampleRate = audioContext ? audioContext.sampleRate : 16000;
+        if (nativeSampleRate !== 16000) {
+            combined = downsampleTo16k(combined, nativeSampleRate);
+        }
+
+        var durationSec = (combined.length / 16000).toFixed(1);
+        pendingTranscriptions++;
+        console.log('Submitting command candidate: ' + combined.length + ' samples @ 16kHz, ~' + durationSec + 's');
+
+        socket.emit('audio_data', {
+            audio: combined.buffer,
+            sample_rate: 16000,
+            command_only: true,
+        });
+    }
+
+    function submitSpeculative() {
+        // Send a snapshot of the current audio for early transcription
+        // while the adaptive silence window continues.  Audio chunks are
+        // NOT consumed — if the user resumes speaking the speculative
+        // result is discarded and the full audio is submitted later.
+        if (audioChunks.length === 0) return;
+
+        var totalLength = 0;
+        for (var i = 0; i < audioChunks.length; i++) {
+            totalLength += audioChunks[i].length;
+        }
+        var combined = new Float32Array(totalLength);
+        var offset = 0;
+        for (var i = 0; i < audioChunks.length; i++) {
+            combined.set(audioChunks[i], offset);
+            offset += audioChunks[i].length;
+        }
+
+        var nativeSampleRate = audioContext ? audioContext.sampleRate : 16000;
+        if (nativeSampleRate !== 16000) {
+            combined = downsampleTo16k(combined, nativeSampleRate);
+        }
+
+        var durationSec = (combined.length / 16000).toFixed(1);
+        pendingTranscriptions++;
+        speculativeSent = true;
+        console.log('Submitting speculative transcription: ~' + durationSec + 's (gen ' + speculativeGen + ')');
+
+        socket.emit('audio_data', {
+            audio: combined.buffer,
+            sample_rate: 16000,
+            speculative_gen: speculativeGen,
+        });
+    }
+
+    function finalizeSpeculative() {
+        // Use a speculative transcription result that arrived before
+        // the adaptive silence threshold was reached.
+        var text = speculativeText;
+        audioChunks = [];
+        vadState = 'silence';
+        speechStartTime = 0;
+        lastSpeechTime = 0;
+        speculativeSent = false;
+        speculativeText = null;
+        awaitingSpeculative = false;
+
+        if (!text) return;
+        var lower = text.toLowerCase().replace(/[^a-z]/g, '');
+        if (lower === 'mute') {
+            deactivateVoice();
+            return;
+        }
+        sendText(text);
     }
 
     function submitUtterance() {
@@ -1014,23 +1191,52 @@
         ttsSpeaking = false;
         ttsMismatchStart = 0;
         bargeInCount = 0;
+        speculativeSent = false;
+        speculativeText = null;
+        awaitingSpeculative = false;
     }
 
     socket.on('transcription', function (data) {
         pendingTranscriptions = Math.max(0, pendingTranscriptions - 1);
 
         var text = (data.text || '').trim();
+        var commandOnly = data.command_only || false;
+        var specGen = data.speculative_gen;
         console.log('Transcription received:', text || '(empty)',
+            specGen !== undefined ? '(speculative gen ' + specGen + ')' : '',
+            commandOnly ? '(command candidate)' : '',
             data.error ? 'error: ' + data.error : '',
             '(' + pendingTranscriptions + ' still pending)');
 
+        // Handle speculative transcription results
+        if (specGen !== undefined) {
+            if (specGen !== speculativeGen) return; // stale, ignore
+            if (awaitingSpeculative) {
+                // Adaptive threshold already passed — use immediately
+                awaitingSpeculative = false;
+                if (text) {
+                    var lower = text.toLowerCase().replace(/[^a-z]/g, '');
+                    if (lower === 'mute') { deactivateVoice(); return; }
+                    sendText(text);
+                }
+            } else {
+                // Store for when the adaptive threshold is reached
+                speculativeText = text;
+            }
+            return;
+        }
+
         if (text) {
-            // Voice command: "pause" or "mute" disables the microphone
+            // Voice command: "mute" disables the microphone
             var lower = text.toLowerCase().replace(/[^a-z]/g, '');
-            if (lower === 'pause' || lower === 'mute') {
+            if (lower === 'mute') {
                 deactivateVoice();
                 return;
             }
+            // Command-only transcriptions are discarded if they didn't
+            // match a recognised command — they were too short for normal
+            // speech and only sent speculatively.
+            if (commandOnly) return;
             sendText(text);
         }
     });

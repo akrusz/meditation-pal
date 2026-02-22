@@ -164,7 +164,7 @@ uses your mic directly via sounddevice and speaks responses through the system T
 - on linux without piper, TTS falls back to browser speechSynthesis automatically
 - sessions auto-save to `sessions/` as JSON and plain text
 - say something like "hold on a bit" during a session to enter silence mode. say anything to come back - it understands intent
-- say "pause" or "mute" to immediately turn off the microphone. click the mic button to resume
+- say "mute" to immediately turn off the microphone. click the mic button to resume
 - set an intention loosely or not at all. the facilitator holds it lightly
 - click the orb in the nav bar to enter kasina gazing mode. click away from it to exit
 - click the voice name in the controls bar to open a voice picker modal — voices are grouped by quality tier and you can preview them before choosing
