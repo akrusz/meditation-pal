@@ -145,12 +145,14 @@ class MacOSTTS:
         self.rate = rate
 
     @staticmethod
-    def list_voices() -> list[str]:
+    def list_voices() -> list[dict]:
         """List available voices.
 
         Returns:
-            List of voice names
+            List of dicts with 'name' and 'lang' keys.
         """
+        import re
+
         result = subprocess.run(
             ["say", "-v", "?"],
             capture_output=True,
@@ -159,9 +161,13 @@ class MacOSTTS:
 
         voices = []
         for line in result.stdout.strip().split("\n"):
-            if line:
-                # Format: "Voice Name    lang  # description"
-                voice_name = line.split()[0]
-                voices.append(voice_name)
+            if not line:
+                continue
+            # Format: "Voice Name    xx_XX    # description"
+            # Voice names can contain spaces and parentheses.
+            # Split on the lang code pattern to extract the name.
+            m = re.match(r"^(.+?)\s{2,}(\w{2}_\w{2})\s", line)
+            if m:
+                voices.append({"name": m.group(1).strip(), "lang": m.group(2)})
 
         return voices

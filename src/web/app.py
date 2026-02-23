@@ -326,6 +326,13 @@ def _register_routes(app: Flask) -> None:
         deleted = app.transcript_logger.delete_session(session_id)
         return jsonify({"deleted": deleted})
 
+    @app.route("/api/voices")
+    def api_voices():
+        """Return voices available to the server-side TTS engine."""
+        if app.server_tts and hasattr(app.server_tts, "list_voices"):
+            return jsonify(app.server_tts.list_voices())
+        return jsonify([])
+
 
 def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
     """Register WebSocket event handlers."""

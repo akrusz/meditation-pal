@@ -26,6 +26,7 @@
     const emberBlocks = document.getElementById('ember-blocks');
     const emberContainer = document.getElementById('ember-container');
     const sessionContainer = document.querySelector('.session-container');
+    const listenBtn = document.getElementById('listen-btn');
 
     // State
     let sessionActive = false;
@@ -37,6 +38,8 @@
     let queuedSpeech = null;       // opener TTS queued until user gesture (mic permission)
     let orbDragging = false;        // true while dragging the kasina orb
     let orbMoved = false;           // true if mouse moved during drag (suppresses click-outside)
+    let inSilenceMode = false;       // true when holding space — buffer speech, don't submit
+    let silenceBuffer = [];          // transcribed texts accumulated during silence mode
     let emberLevel = 1;              // ember intensity: 0=off, 1/2/3=increasing
     let ttsRate = 160;             // speech rate in WPM — synced to server + browser TTS
     const synth = window.speechSynthesis || null;
@@ -44,36 +47,79 @@
     let scoredVoices = [];         // [{voice, score}] — built by populateVoices
     let previewUtterance = null;   // current SpeechSynthesisUtterance for preview
 
-    // Build scored voices array from browser speechSynthesis.
-    // Scores voices by quality heuristics so premium/natural voices sort first.
-    function populateVoices() {
-        if (!synth) return;
-        var voices = synth.getVoices();
-        if (voices.length === 0) return;
+    // Known high-quality macOS voices (base names, without Premium/Enhanced suffix).
+    var MACOS_QUALITY_VOICES = /^(Ava|Allison|Samantha|Susan|Tom|Zoe|Karen|Daniel|Moira|Fiona|Tessa|Lee|Majed|Luciana|Joana|Mónica)$/i;
 
-        var langPrefix = (navigator.language || 'en').split('-')[0];
+    // Build scored voices array from browser speechSynthesis + server voices.
+    // Server voices are authoritative (they're what actually speaks).
+    // Browser voices supplement with preview capability.
+    var _maxRawVoices = 0;
+    var _serverVoices = null;  // cached server voice list [{name, lang}]
 
-        // Score and filter voices
+    function scoreVoiceName(name) {
+        var baseName = name.replace(/\s*\(.*\)$/, '');
+        if (/Premium/i.test(name)) return 3;
+        if (/Enhanced/i.test(name)) return 2;
+        if (/Online|Natural/i.test(name)) return 2;
+        if (/^Google/i.test(name)) return 1;
+        if (MACOS_QUALITY_VOICES.test(baseName)) return 1;
+        return 0;
+    }
+
+    function buildVoiceList() {
+        var langPrefix = (navigator.language || 'en').split(/[-_]/)[0];
+        var browserVoices = synth ? synth.getVoices() : [];
+
+        // Index browser voices by name for quick lookup
+        var browserByName = {};
+        for (var i = 0; i < browserVoices.length; i++) {
+            browserByName[browserVoices[i].name] = browserVoices[i];
+        }
+
+        // Start with server voices (authoritative — these are what actually speak)
         var scored = [];
-        for (var i = 0; i < voices.length; i++) {
-            var v = voices[i];
-            var vLang = (v.lang || '').split('-')[0];
+        var seen = {};
+
+        if (_serverVoices) {
+            for (var i = 0; i < _serverVoices.length; i++) {
+                var sv = _serverVoices[i];
+                var vLang = (sv.lang || '').split(/[-_]/)[0];
+                if (vLang !== 'en' && vLang !== langPrefix) continue;
+
+                var score = scoreVoiceName(sv.name);
+                // If browser has this voice, use the real object (enables preview)
+                var browserVoice = browserByName[sv.name];
+                if (!browserVoice && !sv.name.match(/\(/)) {
+                    // Try without qualifier — e.g. server has "Ava (Premium)",
+                    // browser might have just "Ava"
+                    var baseName = sv.name.replace(/\s*\(.*\)$/, '');
+                    browserVoice = browserByName[baseName];
+                }
+
+                scored.push({
+                    voice: browserVoice || { name: sv.name, lang: sv.lang, serverOnly: true },
+                    score: score,
+                });
+                seen[sv.name] = true;
+                if (browserVoice) seen[browserVoice.name] = true;
+            }
+        }
+
+        // Add browser-only voices not already covered by server list
+        for (var i = 0; i < browserVoices.length; i++) {
+            var v = browserVoices[i];
+            if (seen[v.name]) continue;
+            var vLang = (v.lang || '').split(/[-_]/)[0];
             if (vLang !== 'en' && vLang !== langPrefix) continue;
 
-            var score = 0;
-            if (/Premium|Enhanced/i.test(v.name)) score = 3;
-            if (/Online|Natural/i.test(v.name)) score = Math.max(score, 2);
+            var score = scoreVoiceName(v.name);
             if (!v.localService) score = Math.max(score, 2);
-            if (/^Google/i.test(v.name)) score = Math.max(score, 1);
-
             scored.push({ voice: v, score: score });
+            seen[v.name] = true;
         }
 
-        // If 3+ high-quality voices available, drop the score-0 ones to reduce clutter
-        var aboveZero = scored.filter(function (s) { return s.score > 0; });
-        if (aboveZero.length >= 3) {
-            scored = aboveZero;
-        }
+        // Keep all voices — sorted by quality so premium/quality are at top,
+        // novelty and other voices remain available at the bottom.
 
         // Sort: highest score first, then alphabetically
         scored.sort(function (a, b) {
@@ -83,20 +129,50 @@
 
         scoredVoices = scored;
 
-        // Restore saved voice, or default to the top one
-        if (!preferredVoice && scored.length > 0) {
+        // Restore saved voice, or default to the best available.
+        // No localStorage entry means the user hasn't explicitly chosen,
+        // so always pick the top voice (which may improve as server voices arrive).
+        if (scored.length > 0) {
             var savedVoice = localStorage.getItem('glooow-voice');
-            var found = null;
             if (savedVoice) {
+                var found = null;
                 for (var i = 0; i < scored.length; i++) {
                     if (scored[i].voice.name === savedVoice) { found = scored[i].voice; break; }
                 }
+                if (found) preferredVoice = found;
+                else if (!preferredVoice) preferredVoice = scored[0].voice;
+            } else {
+                preferredVoice = scored[0].voice;
             }
-            preferredVoice = found || scored[0].voice;
         }
 
         updateVoicePickerLabel();
         console.log('Voices loaded:', scored.length, '. Selected:', preferredVoice ? preferredVoice.name : '(none)');
+    }
+
+    function populateVoices() {
+        if (!synth) return;
+        var voices = synth.getVoices();
+        if (voices.length === 0) return;
+
+        // Safari voiceschanged quirk: may re-fire with fewer voices
+        if (voices.length < _maxRawVoices) return;
+        _maxRawVoices = voices.length;
+
+        buildVoiceList();
+    }
+
+    function fetchServerVoices() {
+        fetch('/api/voices')
+            .then(function (r) { return r.json(); })
+            .then(function (voices) {
+                _serverVoices = voices;
+                console.log('Server voices:', voices.length);
+                buildVoiceList();
+            })
+            .catch(function (e) {
+                console.warn('Could not fetch server voices:', e);
+            });
     }
 
     function updateVoicePickerLabel() {
@@ -203,10 +279,11 @@
     }
 
     function selectVoice(voiceName) {
-        var voices = synth ? synth.getVoices() : [];
-        for (var i = 0; i < voices.length; i++) {
-            if (voices[i].name === voiceName) {
-                preferredVoice = voices[i];
+        // Find the voice in scoredVoices (covers both browser and server-only voices)
+        preferredVoice = null;
+        for (var i = 0; i < scoredVoices.length; i++) {
+            if (scoredVoices[i].voice.name === voiceName) {
+                preferredVoice = scoredVoices[i].voice;
                 break;
             }
         }
@@ -233,9 +310,22 @@
         }
     }
 
+    // Fetch server voices (authoritative — these are what actually speak)
+    fetchServerVoices();
+
     if (synth) {
         populateVoices();
         synth.addEventListener('voiceschanged', populateVoices);
+        // Safari may return empty voices initially and not fire voiceschanged
+        // reliably — poll a few times as a fallback.
+        if (scoredVoices.length === 0) {
+            var retries = 0;
+            var voiceRetry = setInterval(function () {
+                populateVoices();
+                retries++;
+                if (scoredVoices.length > 0 || retries >= 10) clearInterval(voiceRetry);
+            }, 200);
+        }
     }
 
     // Audio capture state
@@ -355,6 +445,7 @@
 
         // Event listeners
         voiceBtn.addEventListener('click', toggleVoice);
+        listenBtn.addEventListener('click', toggleListenMode);
         endBtn.addEventListener('click', endSession);
         // Restore saved speed
         var savedSpeed = localStorage.getItem('glooow-speed');
@@ -633,6 +724,24 @@
 
     function sendText(text) {
         if (!text || !sessionActive) return;
+
+        // During silence mode, buffer speech instead of submitting.
+        // Show it in the conversation but don't send to the LLM.
+        // Only a resume phrase triggers sending everything at once.
+        if (inSilenceMode) {
+            silenceBuffer.push(text);
+            addMessage('user', text);
+            setStatus("Holding space\u2026 say \u2018come back\u2019 to resume");
+            if (isResumeCommand(text)) {
+                var combined = silenceBuffer.join(' ... ');
+                silenceBuffer = [];
+                inSilenceMode = false;
+                listenBtn.classList.remove('active');
+                socket.emit('user_message', { text: combined });
+            }
+            return;
+        }
+
         addMessage('user', text);
         socket.emit('user_message', { text: text });
     }
@@ -726,10 +835,14 @@
 
     socket.on('silence_mode', function (data) {
         var orb = document.getElementById('orb');
+        inSilenceMode = data.active;
+        listenBtn.classList.toggle('active', data.active);
         if (data.active) {
-            setStatus('Holding space... speak when ready');
+            silenceBuffer = [];
+            setStatus("Holding space\u2026 say \u2018come back\u2019 to resume");
             if (orb && !kasinaToggle.checked) orb.classList.add('orb-holding');
         } else {
+            silenceBuffer = [];
             setStatus("Speak naturally, or say 'mute' to turn off mic");
             if (orb) orb.classList.remove('orb-holding');
         }
@@ -782,6 +895,33 @@
             deactivateVoice();
         } else {
             activateVoice();
+        }
+    }
+
+    function toggleListenMode() {
+        if (inSilenceMode) {
+            // Exit: send buffered text if any, then resume normal mode
+            inSilenceMode = false;
+            listenBtn.classList.remove('active');
+            if (silenceBuffer.length > 0) {
+                var combined = silenceBuffer.join(' ... ');
+                silenceBuffer = [];
+                socket.emit('user_message', { text: combined });
+            } else {
+                // Nothing buffered — still need to tell the server
+                socket.emit('user_message', { text: '(silence)' });
+            }
+            setStatus("Speak naturally, or say 'mute' to turn off mic");
+            var orb = document.getElementById('orb');
+            if (orb) orb.classList.remove('orb-holding');
+        } else {
+            // Enter holding-space mode locally
+            inSilenceMode = true;
+            silenceBuffer = [];
+            listenBtn.classList.add('active');
+            setStatus("Holding space\u2026 say \u2018come back\u2019 to resume");
+            var orb = document.getElementById('orb');
+            if (orb && !kasinaToggle.checked) orb.classList.add('orb-holding');
         }
     }
 
@@ -900,7 +1040,7 @@
                         lastSpeechTime = now;
                         if (now - speechStartTime >= MIN_SPEECH_DURATION) {
                             vadState = 'speaking';
-                            setStatus('Listening...');
+                            if (!inSilenceMode) setStatus('Listening...');
                         }
                     } else {
                         // Short silence — noise reject if too long
@@ -1014,7 +1154,11 @@
         speculativeText = null;
         awaitingSpeculative = false;
 
-        setStatus("Speak naturally, or say 'mute' to turn off mic");
+        if (inSilenceMode) {
+            setStatus("Holding space\u2026 say \u2018come back\u2019 to resume");
+        } else {
+            setStatus("Speak naturally, or say 'mute' to turn off mic");
+        }
     }
 
     function isHoldCommand(text) {
@@ -1022,6 +1166,13 @@
         // the LLM even from command-candidate transcriptions.
         var lower = text.toLowerCase();
         return /\b(hold|wait|one moment|one sec|hang on|just a)\b/.test(lower);
+    }
+
+    function isResumeCommand(text) {
+        // Recognise phrases that signal the user wants to exit silence
+        // mode and resume the conversation.
+        var lower = text.toLowerCase();
+        return /\b(come back|i'm back|im back|resume|back now)\b/.test(lower);
     }
 
     function submitCommandCandidate() {
@@ -1174,6 +1325,7 @@
         voiceActive = false;
         listening = false;
         voiceBtn.classList.remove('active');
+        // Don't reset inSilenceMode — silence mode persists through mic mute/unmute
         setStatus('Microphone off. Click mic to resume.');
 
         stopServerAudio();
@@ -1243,8 +1395,10 @@
             // Command-only transcriptions are discarded unless they
             // match a recognised command — they were too short for normal
             // speech and only sent speculatively.  Hold/wait phrases are
-            // forwarded so the LLM can trigger silence mode.
+            // forwarded so the LLM can trigger silence mode.  Resume
+            // phrases are forwarded during silence mode to exit it.
             if (commandOnly) {
+                if (inSilenceMode && isResumeCommand(text)) { sendText(text); return; }
                 if (isHoldCommand(text)) sendText(text);
                 return;
             }
@@ -1271,8 +1425,16 @@
         utterance.rate = ttsRate / 180;  // convert WPM to browser rate (180 WPM ≈ 1.0)
         utterance.pitch = 0.85;
 
+        // Look up voice fresh by name — Safari voice object references can
+        // go stale after voiceschanged, causing silent fallback to system default.
         if (preferredVoice) {
-            utterance.voice = preferredVoice;
+            var freshVoices = synth.getVoices();
+            for (var i = 0; i < freshVoices.length; i++) {
+                if (freshVoices[i].name === preferredVoice.name) {
+                    utterance.voice = freshVoices[i];
+                    break;
+                }
+            }
         }
 
         ttsSpeaking = true;
