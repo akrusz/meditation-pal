@@ -585,6 +585,18 @@ body:has(.session-container) {
     cursor: pointer;
 }
 
+.orb-bounce {
+    animation: orbBounce 0.6s ease-in-out;
+}
+
+@keyframes orbBounce {
+    0%   { transform: translateY(0); }
+    25%  { transform: translateY(-7px); }
+    50%  { transform: translateY(1px); }
+    75%  { transform: translateY(-2px); }
+    100% { transform: translateY(0); }
+}
+
 .session-timer {
     font-size: 0.85rem;
     color: var(--text-muted);
@@ -1245,7 +1257,7 @@ body::before {
    ============================================ */
 
 .history-container {
-    max-width: 720px;
+    width: 720px;
     margin: 0 auto;
 }
 
@@ -1262,6 +1274,7 @@ body::before {
 }
 
 .session-item {
+    width: 100%;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     overflow: hidden;
