@@ -147,7 +147,6 @@
         }
 
         updateVoicePickerLabel();
-        console.log('Voices loaded:', scored.length, '. Selected:', preferredVoice ? preferredVoice.name : '(none)');
     }
 
     function populateVoices() {
@@ -167,12 +166,9 @@
             .then(function (r) { return r.json(); })
             .then(function (voices) {
                 _serverVoices = voices;
-                console.log('Server voices:', voices.length);
                 buildVoiceList();
             })
-            .catch(function (e) {
-                console.warn('Could not fetch server voices:', e);
-            });
+            .catch(function () {});
     }
 
     function updateVoicePickerLabel() {
@@ -258,24 +254,21 @@
     function stopPreview() {
         if (synth) synth.cancel();
         previewUtterance = null;
+        if (previewAudio) { previewAudio.pause(); previewAudio = null; }
     }
+
+    var previewAudio = null;  // Audio element for server-side preview playback
 
     function previewVoice(voiceName) {
         stopPreview();
-        if (!synth) return;
-        var voices = synth.getVoices();
-        var voice = null;
-        for (var i = 0; i < voices.length; i++) {
-            if (voices[i].name === voiceName) { voice = voices[i]; break; }
-        }
-        if (!voice) return;
 
-        var phrase = voiceName === 'Zarvox' ? 'Come. On. Fahoogwuhgods.' : PREVIEW_PHRASE;
-        previewUtterance = new SpeechSynthesisUtterance(phrase);
-        previewUtterance.voice = voice;
-        previewUtterance.rate = ttsRate / 180;
-        previewUtterance.pitch = 0.85;
-        synth.speak(previewUtterance);
+        // Use server TTS for preview — consistent quality and works for
+        // voices the browser doesn't expose (e.g. macOS Premium in Safari).
+        if (previewAudio) { previewAudio.pause(); previewAudio = null; }
+        var url = '/api/voices/preview?voice=' + encodeURIComponent(voiceName);
+        if (voiceName === 'Zarvox') url += '&text=' + encodeURIComponent('Come. On. Fahoogwuhgods.');
+        previewAudio = new Audio(url);
+        previewAudio.play().catch(function () {});
     }
 
     function selectVoice(voiceName) {

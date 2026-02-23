@@ -333,6 +333,29 @@ def _register_routes(app: Flask) -> None:
             return jsonify(app.server_tts.list_voices())
         return jsonify([])
 
+    @app.route("/api/voices/preview")
+    def api_voice_preview():
+        """Generate a short TTS preview for a given voice."""
+        from flask import Response
+
+        voice = request.args.get("voice")
+        if not voice or not app.server_tts or not hasattr(app.server_tts, "speak_to_bytes"):
+            return Response(status=404)
+
+        text = request.args.get("text", "Welcome to glow. I'll be your guide.")
+
+        # Temporarily switch voice, generate audio, then restore
+        original_voice = app.server_tts.voice
+        app.server_tts.set_voice(voice)
+        try:
+            audio = app.server_tts.speak_to_bytes(text)
+        finally:
+            app.server_tts.set_voice(original_voice)
+
+        if not audio:
+            return Response(status=500)
+        return Response(audio, mimetype="audio/wav")
+
 
 def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
     """Register WebSocket event handlers."""
