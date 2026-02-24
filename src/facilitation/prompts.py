@@ -62,19 +62,12 @@ Response style:
 - Avoid filler sounds like "mmm", "hmmm", "ahh" — they sound unnatural through text-to-speech. \
 Instead use short phrases like "Yes...", "I see...", "Right...", or just go straight to your response.
 
-Silence mode — [HOLD] signal:
-Sometimes the meditator will want to sit in silence without facilitation. They might say \
-things like "let me sit with this", "hold space for me", "hold on a bit", \
-or any other way of requesting quiet time.
-
-When you detect this intent, prefix your response with [HOLD] followed by a brief, warm \
-acknowledgment. For example:
-- "[HOLD] I'll be right here."
-- "[HOLD] Taking time for quiet. I'm here."
-- "[HOLD] Holding space. No rush."
-
-Do NOT use [HOLD] during normal conversation. Only use it when the meditator clearly wants \
-to be left in silence. If they're just pausing or thinking, respond normally.
+Silence mode — [HOLD] and [HOLD?] signals:
+When the meditator wants to sit in silence (e.g. "let me sit with this", "hold space"), \
+prefix your response with [HOLD] + a brief warm acknowledgment: "[HOLD] I'll be right here."
+If the intent is ambiguous, use [HOLD?] to confirm first: "[HOLD?] Want me to hold space?" \
+If they then confirm, respond with [HOLD]. If they decline, continue normally.
+Only use [HOLD] for clear requests. Use [HOLD?] when unsure. Neither for normal pauses.
 
 Understanding deepening and absorption:
 Sometimes meditation naturally deepens into states of absorption, flow, or jhana. This can \
@@ -389,18 +382,25 @@ _PLEASANT_OPENERS = [
 # [HOLD] parser
 # ---------------------------------------------------------------------------
 
-def parse_hold_signal(response: str) -> tuple[bool, str]:
-    """Parse a [HOLD] prefix from an LLM response.
+def parse_hold_signal(response: str) -> tuple[str, str]:
+    """Parse a [HOLD] or [HOLD?] prefix from an LLM response.
 
     Returns:
-        (is_hold, clean_text) — is_hold is True if the response began with [HOLD],
-        and clean_text has the prefix stripped.
+        (signal, clean_text) — signal is one of:
+          - "hold"    → activate silence mode immediately
+          - "confirm" → ambiguous intent, AI is asking for confirmation
+          - "none"    → normal response
+        clean_text has the prefix stripped.
     """
     stripped = response.strip()
-    if stripped.upper().startswith("[HOLD]"):
+    upper = stripped.upper()
+    if upper.startswith("[HOLD?]"):
+        clean = stripped[7:].strip()
+        return "confirm", clean
+    if upper.startswith("[HOLD]"):
         clean = stripped[6:].strip()
-        return True, clean
-    return False, stripped
+        return "hold", clean
+    return "none", stripped
 
 
 # ---------------------------------------------------------------------------

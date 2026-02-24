@@ -94,12 +94,14 @@ class WebMeditationSession:
             )
         return base
 
-    async def generate_response(self, user_text: str) -> tuple[str, bool]:
+    async def generate_response(self, user_text: str) -> tuple[str, str]:
         """Generate a facilitator response to user input.
 
         Returns:
-            (response_text, is_hold) — is_hold is True when the LLM
-            signalled silence mode via the [HOLD] prefix.
+            (response_text, hold_signal) — hold_signal is one of:
+              "hold"    → activate silence mode
+              "confirm" → AI is asking user to confirm before silence mode
+              "none"    → normal response
         """
         self.session.add_user_message(user_text)
 
@@ -116,13 +118,13 @@ class WebMeditationSession:
             print(f"  [LLM ERROR] {type(e).__name__}: {e}", flush=True)
             response = "What do you notice now?"
 
-        is_hold, clean_response = parse_hold_signal(response)
+        hold_signal, clean_response = parse_hold_signal(response)
 
-        if is_hold:
+        if hold_signal == "hold":
             self.in_silence_mode = True
 
         self.session.add_assistant_message(clean_response)
-        return clean_response, is_hold
+        return clean_response, hold_signal
 
     def get_opener(self) -> str:
         """Get a session opening message."""
@@ -448,12 +450,12 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
         emit("facilitator_typing", {"typing": True})
 
         try:
-            response, is_hold = asyncio.run(web_session.generate_response(text))
+            response, hold_signal = asyncio.run(web_session.generate_response(text))
             audio = None
             if web_session.tts_enabled and app.server_tts and hasattr(app.server_tts, 'speak_to_bytes'):
                 audio = app.server_tts.speak_to_bytes(response)
             emit("facilitator_message", {"text": response, "type": "response", "audio": audio})
-            if is_hold:
+            if hold_signal == "hold":
                 emit("silence_mode", {"active": True})
         except Exception:
             emit("facilitator_message", {

@@ -259,8 +259,8 @@ class MeditationFacilitator:
             print(f"\n(LLM error: {e})")
             response = "What do you notice now?"
 
-        # Check for [HOLD] signal — LLM wants us to enter silence mode
-        is_hold, clean_response = parse_hold_signal(response)
+        # Check for [HOLD]/[HOLD?] signal — LLM wants us to enter silence mode
+        hold_signal, clean_response = parse_hold_signal(response)
 
         if clean_response:
             print(f"\nFacilitator: {clean_response}")
@@ -273,7 +273,7 @@ class MeditationFacilitator:
                 self.vad.reset()
                 self._audio_buffer = []
 
-        if is_hold:
+        if hold_signal == "hold":
             self.pacing.enter_silence_mode()
 
         self.pacing.on_response_end()

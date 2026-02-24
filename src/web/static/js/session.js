@@ -1164,7 +1164,8 @@
     function isResumeCommand(text) {
         // Recognise phrases that signal the user wants to exit silence
         // mode and resume the conversation.
-        var lower = text.toLowerCase();
+        var lower = text.toLowerCase().trim();
+        if (lower === 'okay' || lower === 'ok') return true;
         return /\b(come back|i'm back|im back|resume|back now)\b/.test(lower);
     }
 
