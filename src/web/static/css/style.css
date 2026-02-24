@@ -8,9 +8,9 @@
     --bg-secondary: #1a1410;
     --bg-card: #221a13;
     --bg-input: #281f16;
-    --text-primary: #ede4d8;
-    --text-secondary: #a8977e;
-    --text-muted: #786a58;
+    --text-primary: #f0e8dd;
+    --text-secondary: #b3a28a;
+    --text-muted: #8a7b68;
     --accent: #d4873a;
     --accent-dim: rgba(212, 135, 58, 0.15);
     --accent-glow: rgba(212, 135, 58, 0.3);
@@ -32,9 +32,9 @@
     --bg-secondary: #eae3d8;
     --bg-card: #dfd6c8;
     --bg-input: #fffcf8;
-    --text-primary: #2a2420;
+    --text-primary: #221d19;
     --text-secondary: #5c5248;
-    --text-muted: #8c7f72;
+    --text-muted: #766a5e;
     --accent: #b06828;
     --accent-dim: rgba(176, 104, 40, 0.10);
     --accent-glow: rgba(176, 104, 40, 0.20);
@@ -167,10 +167,20 @@ body {
     color: #fff;
 }
 
+[data-theme="dark"] .btn-primary,
+:root:not([data-theme="light"]) .btn-primary {
+    color: #1a1208;
+}
+
 .btn-primary:hover {
     background: #c07830;
     border-color: #c07830;
     color: #fff;
+}
+
+[data-theme="dark"] .btn-primary:hover,
+:root:not([data-theme="light"]) .btn-primary:hover {
+    color: #1a1208;
 }
 
 .btn-secondary {
