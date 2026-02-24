@@ -123,7 +123,10 @@ class WebMeditationSession:
         if hold_signal == "hold":
             self.in_silence_mode = True
 
-        self.session.add_assistant_message(clean_response)
+        # Keep the [HOLD] prefix in conversation history so the LLM
+        # knows it was in silence mode when interpreting later messages
+        # like "come back" (which otherwise reads as a meditation cue).
+        self.session.add_assistant_message(response if hold_signal == "hold" else clean_response)
         return clean_response, hold_signal
 
     def get_opener(self) -> str:
@@ -455,7 +458,8 @@ def _register_socketio_events(socketio: SocketIO, app: Flask) -> None:
             if web_session.tts_enabled and app.server_tts and hasattr(app.server_tts, 'speak_to_bytes'):
                 audio = app.server_tts.speak_to_bytes(response)
             emit("facilitator_message", {"text": response, "type": "response", "audio": audio})
-            if hold_signal == "hold":
+            # Don't re-enter silence right after the user just exited it
+            if hold_signal == "hold" and not was_silent:
                 emit("silence_mode", {"active": True})
         except Exception:
             emit("facilitator_message", {

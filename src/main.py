@@ -264,7 +264,8 @@ class MeditationFacilitator:
 
         if clean_response:
             print(f"\nFacilitator: {clean_response}")
-            self.session.add_assistant_message(clean_response)
+            # Keep [HOLD] prefix in history so the LLM has context
+            self.session.add_assistant_message(response if hold_signal == "hold" else clean_response)
             # Skip TTS for non-speakable responses (e.g. "." used as silence marker in Open style)
             if any(c.isalpha() or c.isdigit() for c in clean_response):
                 await self.tts.speak(clean_response)
