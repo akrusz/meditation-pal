@@ -294,6 +294,12 @@ def _register_routes(app: Flask) -> None:
             "hint": "Set the OPENROUTER_API_KEY environment variable",
         }
 
+        # venice — needs VENICE_API_KEY
+        results["venice"] = {
+            "available": bool(os.environ.get("VENICE_API_KEY")),
+            "hint": "Set the VENICE_API_KEY environment variable",
+        }
+
         # ollama — check if server is running and list pulled models
         ollama_url = app.meditation_config.llm.ollama_url or "http://localhost:11434"
         try:

@@ -15,6 +15,7 @@ class OpenAIProvider(BaseLLMProvider):
         max_tokens: int = 300,
         base_url: str | None = None,
         env_key: str = "OPENAI_API_KEY",
+        extra_body: dict | None = None,
     ):
         """Initialize OpenAI provider.
 
@@ -24,10 +25,12 @@ class OpenAIProvider(BaseLLMProvider):
             max_tokens: Maximum tokens in response
             base_url: Optional base URL for OpenAI-compatible APIs (e.g. OpenRouter)
             env_key: Environment variable name for the API key
+            extra_body: Extra parameters to pass in the request body
         """
         super().__init__(model=model, max_tokens=max_tokens)
         self.api_key = api_key or os.environ.get(env_key)
         self.base_url = base_url
+        self.extra_body = extra_body
 
         if not self.api_key:
             raise ValueError(
@@ -79,11 +82,14 @@ class OpenAIProvider(BaseLLMProvider):
             })
 
         # Make API call
-        response = await client.chat.completions.create(
+        kwargs = dict(
             model=self.model,
             messages=openai_messages,
             max_tokens=max_tokens or self.max_tokens,
         )
+        if self.extra_body:
+            kwargs["extra_body"] = self.extra_body
+        response = await client.chat.completions.create(**kwargs)
 
         # Extract response
         choice = response.choices[0]

@@ -33,7 +33,7 @@ tts:
   # similarity_boost: 0.75
 
 llm:
-  provider: claude_proxy  # claude_proxy, anthropic, openai, ollama, openrouter
+  provider: claude_proxy  # claude_proxy, anthropic, openai, ollama, openrouter, venice
   model: claude-sonnet-4-5-20250929
 
   # For claude_proxy (CLIProxyAPI)
@@ -48,6 +48,11 @@ llm:
   # provider: openrouter
   # model: deepseek/deepseek-v3.2-20251201
   # (set OPENROUTER_API_KEY env var)
+
+  # For Venice.ai (privacy-focused, zero prompt storage)
+  # provider: venice
+  # model: llama-3.3-70b
+  # (set VENICE_API_KEY env var)
 
   # For OpenAI (or any OpenAI-compatible endpoint)
   # openai_base_url: https://api.example.com/v1

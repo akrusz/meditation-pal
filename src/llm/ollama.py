@@ -133,7 +133,7 @@ def create_llm_provider(
     """Factory function to create LLM provider.
 
     Args:
-        provider: Provider name ("claude_proxy", "anthropic", "openai", "ollama", "openrouter")
+        provider: Provider name ("claude_proxy", "anthropic", "openai", "ollama", "openrouter", "venice")
         model: Model name (uses provider default if not specified)
         proxy_url: CLIProxyAPI URL (for claude_proxy)
         ollama_url: Ollama server URL (for ollama)
@@ -175,6 +175,15 @@ def create_llm_provider(
             max_tokens=max_tokens,
             base_url="https://openrouter.ai/api/v1",
             env_key="OPENROUTER_API_KEY",
+        )
+    elif provider == "venice":
+        return OpenAIProvider(
+            api_key=api_key,
+            model=model or "llama-3.3-70b",
+            max_tokens=max_tokens,
+            base_url="https://api.venice.ai/api/v1",
+            env_key="VENICE_API_KEY",
+            extra_body={"venice_parameters": {"include_venice_system_prompt": False}},
         )
     elif provider == "ollama":
         return OllamaProvider(

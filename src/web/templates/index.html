@@ -188,6 +188,7 @@
                     <option value="claude_proxy" selected>Anthropic (Subscription)</option>
                     <option value="anthropic">Anthropic (API Key)</option>
                     <option value="openrouter">OpenRouter</option>
+                    <option value="venice">Venice.ai (Private)</option>
                     <option value="ollama">Ollama (Local)</option>
                 </select>
             </div>
@@ -340,6 +341,11 @@
             { value: 'deepseek/deepseek-v3.2-20251201', label: 'DeepSeek V3.2' },
             { value: 'moonshotai/kimi-k2.5-0127', label: 'Kimi K2.5' },
             { value: 'moonshotai/kimi-k2-thinking-20251106', label: 'Kimi K2 Thinking' },
+        ],
+        venice: [
+            { value: 'llama-3.3-70b', label: 'Llama 3.3 70B' },
+            { value: 'qwen3-235b-a22b-instruct-2507', label: 'Qwen3 235B' },
+            { value: 'deepseek-ai-DeepSeek-R1', label: 'DeepSeek R1' },
         ],
         ollama: [],  // populated from /api/providers
     };

@@ -99,6 +99,7 @@ echo ""
 echo "  Which LLM provider will you use?"
 echo "    1) CLIProxyAPI — uses your Claude subscription (default)"
 echo "    2) Ollama      — local LLM server"
+echo "    3) Venice.ai   — privacy-focused cloud inference"
 echo ""
 LLM_CHOICE=$(ask "Choice" "1")
 
@@ -114,6 +115,17 @@ if [ "$LLM_CHOICE" = "2" ]; then
     OLLAMA_URL=$(ask "Ollama URL" "$OLLAMA_URL")
     OLLAMA_MODEL=$(ask "Ollama model" "$OLLAMA_MODEL")
     ok "Using Ollama at $OLLAMA_URL with model $OLLAMA_MODEL"
+elif [ "$LLM_CHOICE" = "3" ]; then
+    LLM_PROVIDER="venice"
+    LLM_MODEL="llama-3.3-70b"
+    printf "  Venice API key: " >&2
+    read -r VENICE_KEY
+    if [ -n "$VENICE_KEY" ]; then
+        echo "  Add to your shell profile:"
+        echo "    export VENICE_API_KEY=\"$VENICE_KEY\""
+        export VENICE_API_KEY="$VENICE_KEY"
+    fi
+    ok "Using Venice.ai with model $LLM_MODEL"
 else
     API_KEY=$(ask "CLIProxyAPI key" "$API_KEY")
 
@@ -209,7 +221,7 @@ tts:
   # similarity_boost: 0.75
 
 llm:
-  provider: $LLM_PROVIDER  # claude_proxy, anthropic, openai, ollama
+  provider: $LLM_PROVIDER  # claude_proxy, anthropic, openai, ollama, openrouter, venice
   model: $LLM_MODEL
 
   # For claude_proxy (CLIProxyAPI)
@@ -261,6 +273,8 @@ echo ""
 echo "  LLM provider:  $LLM_PROVIDER"
 if [ "$LLM_PROVIDER" = "ollama" ]; then
     echo "  Ollama model:  $OLLAMA_MODEL @ $OLLAMA_URL"
+elif [ "$LLM_PROVIDER" = "venice" ]; then
+    echo "  Venice model:  $LLM_MODEL"
 else
     echo "  Proxy URL:     $PROXY_URL"
 fi
